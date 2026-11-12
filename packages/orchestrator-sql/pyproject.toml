@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orchestrator-sql"
+dynamic = ["version"]
+description = "SQL Capability of the Orchestrator platform: parameterized SQL, transactions and a Provider contract."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Orchestrator Contributors" }]
+keywords = ["automation", "orchestration", "sql", "capability"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Database",
+    "Typing :: Typed",
+]
+dependencies = ["orchestrator-core>=0.1,<0.2"]
+
+[tool.setuptools.dynamic]
+version = { attr = "orchestrator_sql._version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+orchestrator_sql = ["py.typed"]

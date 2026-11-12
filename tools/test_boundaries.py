@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 ALLOWED = {
     "packages/orchestrator-core": {"orchestrator_core"},
+    "packages/orchestrator-sql": {"orchestrator_core", "orchestrator_sql"},
     "examples/hello-automation": {"orchestrator_core", "hello_automation"},
 }
 TEST_ONLY = {"pytest"}
@@ -63,6 +64,7 @@ def test_package_dependencies_match_the_boundaries() -> None:
 
     expected: dict[str, set[str]] = {
         "packages/orchestrator-core": set(),
+        "packages/orchestrator-sql": {"orchestrator-core"},
     }
     for project, dependencies in expected.items():
         data = tomllib.loads((ROOT / project / "pyproject.toml").read_text(encoding="utf-8"))

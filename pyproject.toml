@@ -7,6 +7,7 @@ target-version = "py313"
 line-length = 100
 src = [
     "packages/orchestrator-core/src",
+    "packages/orchestrator-sql/src",
     "examples/hello-automation/src",
 ]
 
@@ -44,10 +45,12 @@ warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool", "possibly-undefined"]
 mypy_path = [
     "packages/orchestrator-core/src",
+    "packages/orchestrator-sql/src",
     "examples/hello-automation/src",
 ]
 files = [
     "packages/orchestrator-core/src",
+    "packages/orchestrator-sql/src",
     "examples/hello-automation/src",
     "tools",
 ]
@@ -57,11 +60,14 @@ minversion = "9.0"
 testpaths = [
     "packages/orchestrator-core/src",
     "packages/orchestrator-core/tests",
+    "packages/orchestrator-sql/src",
+    "packages/orchestrator-sql/tests",
     "examples/hello-automation/tests",
     "tools",
 ]
 pythonpath = [
     "packages/orchestrator-core/src",
+    "packages/orchestrator-sql/src",
     "examples/hello-automation/src",
 ]
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib", "--doctest-modules"]
@@ -72,7 +78,7 @@ markers = ["slow: testes de estresse e de concorrência (mais demorados)"]
 
 [tool.coverage.run]
 branch = true
-source = ["orchestrator_core"]
+source = ["orchestrator_core", "orchestrator_sql"]
 
 [tool.coverage.report]
 fail_under = 90
