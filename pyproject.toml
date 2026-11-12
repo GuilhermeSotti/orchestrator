@@ -10,6 +10,7 @@ src = [
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
     "examples/hello-automation/src",
+    "examples/sales-report/src",
 ]
 
 [tool.ruff.lint]
@@ -49,12 +50,14 @@ mypy_path = [
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
     "examples/hello-automation/src",
+    "examples/sales-report/src",
 ]
 files = [
     "packages/orchestrator-core/src",
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
     "examples/hello-automation/src",
+    "examples/sales-report/src",
     "tools",
 ]
 
@@ -68,6 +71,7 @@ testpaths = [
     "packages/orchestrator-sqlite/src",
     "packages/orchestrator-sqlite/tests",
     "examples/hello-automation/tests",
+    "examples/sales-report/tests",
     "tools",
 ]
 pythonpath = [
@@ -75,6 +79,7 @@ pythonpath = [
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
     "examples/hello-automation/src",
+    "examples/sales-report/src",
 ]
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib", "--doctest-modules"]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]

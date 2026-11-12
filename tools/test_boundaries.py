@@ -23,6 +23,12 @@ ALLOWED = {
         "orchestrator_sqlite",
     },
     "examples/hello-automation": {"orchestrator_core", "hello_automation"},
+    "examples/sales-report": {
+        "orchestrator_core",
+        "orchestrator_sql",
+        "orchestrator_sqlite",
+        "sales_report",
+    },
 }
 TEST_ONLY = {"pytest"}
 

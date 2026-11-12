@@ -1,0 +1,12 @@
+# Configuração do exemplo. Para usar um arquivo em vez da memória:
+#   ORCHESTRATOR_CAPABILITIES__SQL__DATABASE=vendas.db
+[runtime]
+name = "sales-report"
+timeout = 120
+
+[capabilities.sql]
+provider = "sqlite"
+database = ":memory:"
+
+[app]
+currency = "BRL"
