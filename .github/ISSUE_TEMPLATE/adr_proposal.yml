@@ -1,0 +1,38 @@
+name: ADR proposal
+description: Proponha uma mudança arquitetural relevante para a plataforma
+title: "[ADR]: "
+labels: ["ADR", "enhancement"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Descreva o problema, restrição ou motivação da decisão.
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decisão proposta
+      description: Explique a decisão arquitetural que será adotada.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas considerandas
+      description: Liste outras opções avaliadas.
+    validations:
+      required: true
+  - type: textarea
+    id: consequences
+    attributes:
+      label: Consequências
+      description: Descreva impactos esperados, positivos e negativos.
+    validations:
+      required: true
+  - type: textarea
+    id: related
+    attributes:
+      label: ADRs relacionadas
+      description: Liste ADRs ou componentes relacionados.

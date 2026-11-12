@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussões
+    url: https://github.com/orchestrator/orchestrator/discussions
+    about: Para perguntas, ideias e discussões de arquitetura, use as discussões do repositório.
+  - name: Segurança
+    url: https://github.com/
+    about: Para reportar vulnerabilidades, use um canal privado.

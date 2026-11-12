@@ -1,0 +1,33 @@
+{
+  "name": "demo-workflow-sql",
+  "tasks": ["prepare", "execute", "finalize"],
+  "parameters": {
+    "mode": "local",
+    "sql_connection": "sqlite:///:memory:",
+    "database": {
+      "schema": "PA0001",
+      "tables": [
+        {
+          "name": "Dados",
+          "columns": [
+            { "name": "ColunaEx", "type": "VARCHAR(255)", "nullable": false },
+            { "name": "CreatedAt", "type": "DATETIME2(3)", "nullable": false, "default": "SYSUTCDATETIME()" },
+            { "name": "UpdatedAt", "type": "DATETIME2(3)", "nullable": true },
+            { "name": "IsActive", "type": "BIT", "nullable": false, "default": "1" }
+          ],
+          "indexes": [
+            { "name": "IX_Dados_ColunaEx", "columns": ["ColunaEx"] }
+          ],
+          "queue": true
+        }
+      ]
+    }
+  },
+  "environment": {
+    "ENV": "development"
+  },
+  "runner": {
+    "type": "local"
+  },
+  "strict": true
+}

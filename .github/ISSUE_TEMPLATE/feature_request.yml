@@ -1,0 +1,29 @@
+name: Feature request
+description: Proponha uma nova funcionalidade ou melhoria para a plataforma
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Descreva o problema ou necessidade que motivou a proposta.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solução proposta
+      description: Explique como a funcionalidade deveria funcionar.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas
+      description: Liste alternativas consideradas.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto
+      description: Descreva o impacto esperado para usuários, arquitetura ou operação.

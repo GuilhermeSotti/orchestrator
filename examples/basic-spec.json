@@ -1,0 +1,14 @@
+{
+  "name": "demo-workflow",
+  "tasks": ["prepare", "execute", "finalize"],
+  "parameters": {
+    "mode": "local"
+  },
+  "environment": {
+    "ENV": "development"
+  },
+  "runner": {
+    "type": "local"
+  },
+  "strict": true
+}

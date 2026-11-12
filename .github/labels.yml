@@ -1,0 +1,82 @@
+labels:
+  - name: bug
+    color: d73a4a
+    description: Problemas identificados na plataforma
+  - name: feature
+    color: a2eeef
+    description: Nova funcionalidade ou melhoria de produto
+  - name: enhancement
+    color: 0e8a16
+    description: Melhoria incremental de comportamento ou experiência
+  - name: documentation
+    color: 0075ca
+    description: Alterações em documentação ou guias
+  - name: refactor
+    color: c5def5
+    description: Refatoração sem mudança de comportamento externo
+  - name: performance
+    color: fbca04
+    description: Melhoria de desempenho ou eficiência
+  - name: security
+    color: b60205
+    description: Questões relacionadas à segurança
+  - name: tech-debt
+    color: 5319e7
+    description: Dívida técnica ou manutenção interna
+  - name: P0
+    color: b60205
+    description: Prioridade crítica
+  - name: P1
+    color: d93f0b
+    description: Prioridade alta
+  - name: P2
+    color: fbca04
+    description: Prioridade média
+  - name: P3
+    color: 0e8a16
+    description: Prioridade baixa
+  - name: core
+    color: 5319e7
+    description: Relevante ao núcleo da plataforma
+  - name: storage
+    color: 0052cc
+    description: Relevante ao módulo de storage
+  - name: config
+    color: 5319e7
+    description: Relevante à configuração do sistema
+  - name: docs
+    color: 0075ca
+    description: Relevante à documentação
+  - name: ci
+    color: 5319e7
+    description: Relevante à integração contínua
+  - name: release
+    color: c2e0c6
+    description: Relevante ao processo de release
+  - name: governance
+    color: fef2c0
+    description: Relevante à governança do repositório
+  - name: blocked
+    color: b60205
+    description: Trabalho bloqueado por dependências ou impedimentos
+  - name: ready
+    color: 0e8a16
+    description: Pronto para execução ou revisão
+  - name: review
+    color: 0052cc
+    description: Em revisão
+  - name: discussion
+    color: d4c5f9
+    description: Requer discussão adicional
+  - name: RFC
+    color: 5319e7
+    description: Proposta formal de mudança
+  - name: ADR
+    color: 5319e7
+    description: Proposta de decisão arquitetural
+  - name: Research
+    color: f9d423
+    description: Investigação ou estudo exploratório
+  - name: Spike
+    color: fef2c0
+    description: Exploração técnica rápida

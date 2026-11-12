@@ -1,0 +1,10 @@
+# Ownership global para o repositório raiz
+* @orchestrator-team
+
+# Arquitetura e padrões de plataforma
+/packages/ @platform-team
+/config/ @platform-team
+/templates/ @platform-team
+
+# Automação e governança do GitHub
+/.github/ @platform-team

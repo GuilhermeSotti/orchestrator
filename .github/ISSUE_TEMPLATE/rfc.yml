@@ -1,0 +1,36 @@
+name: RFC
+description: Proponha uma mudança significativa ou decisão de arquitetura
+title: "[RFC]: "
+labels: ["RFC", "discussion"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Resumo
+      description: Descreva a proposta e o contexto.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivação
+      description: Explique o problema, objetivo ou oportunidade que justifica a proposta.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas
+      description: Liste opções alternativas consideradas.
+    validations:
+      required: true
+  - type: textarea
+    id: rollout
+    attributes:
+      label: Estratégia de rollout
+      description: Como a mudança seria implementada e adotada.
+  - type: textarea
+    id: questions
+    attributes:
+      label: Perguntas abertas
+      description: Liste pontos ainda não definidos e que precisam de discussão.

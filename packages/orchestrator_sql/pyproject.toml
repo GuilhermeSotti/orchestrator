@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orchestrator-sql"
+version = "0.1.0"
+description = "SQL capability for Orchestrator with pluggable provider abstraction and JSON-driven schema management."
+readme = "README.md"
+authors = [{ name = "Orchestrator Contributors" }]
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = []
+optional-dependencies = { sql = ["SQLAlchemy>=2.0"] }
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
