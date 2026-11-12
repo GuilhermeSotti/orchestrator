@@ -1,35 +1,41 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
 *.pyd
 
-# Build artifacts
+# Build
 build/
 dist/
 *.egg-info/
 
-# Virtual environments
+# Ambientes virtuais
 .venv/
 venv/
 env/
 
-# Tooling
+# Ferramentas
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
 
-# Local environment files (never commit secrets)
+# Arquivos de ambiente (nunca commitar segredos)
 .env
 .env.*
 !.env.example
 
-# OS files
+# Saídas geradas pelos exemplos
+examples/**/*.db
+examples/**/relatorio.csv
+examples/**/summary.json
+
+# Sistema operacional
 .DS_Store
 Thumbs.db
 
-# Editors
+# Editores
 .vscode/
 .idea/
