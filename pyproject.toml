@@ -7,6 +7,7 @@ target-version = "py313"
 line-length = 100
 src = [
     "packages/orchestrator-core/src",
+    "examples/hello-automation/src",
 ]
 
 [tool.ruff.lint]
@@ -43,9 +44,11 @@ warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool", "possibly-undefined"]
 mypy_path = [
     "packages/orchestrator-core/src",
+    "examples/hello-automation/src",
 ]
 files = [
     "packages/orchestrator-core/src",
+    "examples/hello-automation/src",
     "tools",
 ]
 
@@ -54,10 +57,12 @@ minversion = "9.0"
 testpaths = [
     "packages/orchestrator-core/src",
     "packages/orchestrator-core/tests",
+    "examples/hello-automation/tests",
     "tools",
 ]
 pythonpath = [
     "packages/orchestrator-core/src",
+    "examples/hello-automation/src",
 ]
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib", "--doctest-modules"]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]

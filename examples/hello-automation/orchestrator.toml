@@ -1,0 +1,8 @@
+# Configuração do exemplo. Variáveis ORCHESTRATOR_<TABELA>__<CHAVE> sobrescrevem estes valores.
+[runtime]
+name = "hello-automation"
+timeout = 60
+workspace = true
+
+[app]
+pattern = "*.txt"

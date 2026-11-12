@@ -1,0 +1,1 @@
+Cada execução tem contexto próprio, logs correlacionados e teardown garantido.

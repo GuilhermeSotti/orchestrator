@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 ALLOWED = {
     "packages/orchestrator-core": {"orchestrator_core"},
+    "examples/hello-automation": {"orchestrator_core", "hello_automation"},
 }
 TEST_ONLY = {"pytest"}
 

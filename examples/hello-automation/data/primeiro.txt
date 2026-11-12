@@ -1,0 +1,2 @@
+O Orchestrator executa automações com um ciclo de vida padronizado.
+A lógica de negócio fica no projeto consumidor.
