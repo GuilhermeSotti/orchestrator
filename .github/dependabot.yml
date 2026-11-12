@@ -1,34 +1,25 @@
 version: 2
 updates:
-  # Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "orchestrator-team"
-    labels:
-      - "dependencies"
-      - "python"
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    labels: [dependencies, ci]
     commit-message:
-      prefix: "chore"
-      include: "scope"
+      prefix: ci
 
-  # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: pip
+    directory: /requirements
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-    reviewers:
-      - "devops-team"
-    labels:
-      - "dependencies"
-      - "github-actions"
+      interval: weekly
+      day: monday
+    groups:
+      dev-tools:
+        patterns: ["*"]
+    labels: [dependencies]
     commit-message:
-      prefix: "ci"
-      include: "scope"
+      prefix: build

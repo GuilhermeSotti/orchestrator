@@ -1,10 +1,3 @@
-# Ownership global para o repositório raiz
-* @orchestrator-team
-
-# Arquitetura e padrões de plataforma
-/packages/ @platform-team
-/config/ @platform-team
-/templates/ @platform-team
-
-# Automação e governança do GitHub
-/.github/ @platform-team
+# Donos de código (ADR-0014). Com um único mantenedor, todo o repositório tem o mesmo dono.
+# Ao surgirem equipes, detalhe por pasta: /packages/orchestrator-core/, /packages/orchestrator-sql/ etc.
+* @SicoloS-Guilherme-Machado

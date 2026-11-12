@@ -1,31 +1,30 @@
-## O que foi alterado?
+## Objetivo
 
-Descreva de forma objetiva as mudanças introduzidas.
+O que muda, em uma ou duas frases.
 
-## Por quê?
+## Motivação
 
-Explique o contexto, o problema resolvido ou a oportunidade atendida.
+Problema resolvido ou oportunidade atendida. Issue relacionada: #
 
-## Existe Breaking Change?
+## Impacto
 
-Informe se a mudança altera contratos, comportamentos ou interfaces existentes.
+- Pacotes afetados:
+- Muda contrato público? Se sim, RFC-0002, CHANGELOG e compatibilidade foram atualizados:
+- ADR ou RFC relacionada:
 
-## Existe ADR relacionada?
+## Evidência de testes
 
-Liste a ADR relevante, se houver.
+Comandos executados e resultado.
 
-## Existe Issue relacionada?
+```text
+ruff check . && ruff format --check . && mypy && pytest
+```
 
-Informe a issue ou problema associado.
+## Checklist (Definition of Done)
 
-## Como testar?
-
-Descreva os passos para validar a mudança localmente ou em ambiente de homologação.
-
-## Checklist
-
-- [ ] Documentação atualizada
-- [ ] Testes adicionados ou ajustados quando aplicável
-- [ ] Impacto de compatibilidade avaliado
-- [ ] Branch atualizada com main
-- [ ] Revisão solicitada quando aplicável
+- [ ] Type hints e docstrings completos
+- [ ] Testes novos ou ajustados; correção de bug com teste de regressão
+- [ ] Ruff, formatação, MyPy e Pytest passando localmente
+- [ ] Documentação e CHANGELOG do pacote atualizados
+- [ ] Nenhum segredo, dado pessoal ou credencial no diff
+- [ ] Dependência nova justificada (no Core, nenhuma)
