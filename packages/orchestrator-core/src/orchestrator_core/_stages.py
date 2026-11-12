@@ -191,11 +191,18 @@ class ShutdownStage(Stage):
 
 
 def _flush_handlers(logger: logging.Logger) -> None:
-    """Flush the handlers reachable from ``logger``."""
+    """Flush the handlers reachable from ``logger``.
+
+    Like the logging module itself, a failing handler never interrupts the
+    execution: its error is ignored.
+    """
     current: logging.Logger | None = logger
     while current is not None:
         for handler in current.handlers:
-            handler.flush()
+            try:
+                handler.flush()
+            except Exception:  # noqa: BLE001, S112 - logging errors never break executions
+                continue
         current = current.parent if current.propagate else None
 
 

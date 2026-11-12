@@ -218,3 +218,20 @@ def test_filters_and_formatter_handle_edge_cases() -> None:
 
 def _fail(ctx: ExecutionContext) -> None:
     raise ValueError("kaput")
+
+
+def test_broken_log_handlers_never_fail_an_execution(builder: RuntimeBuilder) -> None:
+    class Broken(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            pass
+
+        def flush(self) -> None:
+            raise ValueError("I/O operation on closed file.")
+
+    handler = Broken()
+    logging.getLogger("orchestrator").addHandler(handler)
+    try:
+        result = builder.build().run(lambda ctx: ctx.logger.info("hello"))
+    finally:
+        logging.getLogger("orchestrator").removeHandler(handler)
+    assert result.succeeded
