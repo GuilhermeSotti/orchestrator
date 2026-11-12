@@ -1,6 +1,0 @@
-# Core dependencies
-SQLAlchemy>=2.0
-
-# Development dependencies
-pytest>=7.0
-pytest-cov>=4.0

@@ -1,25 +1,76 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+# Configuração das ferramentas do repositório (não é um pacote distribuível).
+# Os pacotes ficam em packages/; os exemplos de projeto consumidor, em examples/.
+# Versões das ferramentas: requirements/dev.txt.
 
-[project]
-name = "orchestrator-core"
-version = "0.1.0"
-description = "Hexagonal runtime core for orchestrator workflows"
-readme = "README.md"
-requires-python = ">=3.11"
-authors = [{ name = "Guilherme Pires de Sotti Machado" }]
-license = { text = "MIT" }
-dependencies = []
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = [
+    "packages/orchestrator-core/src",
+]
 
-[project.scripts]
-orchestrator = "orchestrator_core.main:cli"
+[tool.ruff.lint]
+select = [
+    "A", "ANN", "ARG", "B", "BLE", "C4", "D", "DTZ", "E", "ERA", "F", "I", "ISC",
+    "N", "PERF", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "S", "SIM", "SLF",
+    "T10", "T20", "TC", "UP", "W",
+]
+ignore = [
+    "PLR0913",  # construtores e run() recebem dependências explícitas por palavra-chave
+    "D105",     # métodos mágicos documentados quando relevante
+    "TC001", "TC002", "TC003",  # imports usados em tempo de execução por dataclasses e Protocols
+]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.ruff.lint.per-file-ignores]
+"tools/test_*.py" = ["S101", "D", "PLC0415"]
+"**/tests/**" = [
+    "S101", "D", "ANN", "ARG", "PLR2004", "SLF001", "PT011", "BLE001", "PLC0415",
+    "N", "S105", "S106", "S108", "S311", "PLW0108", "PT012",
+]
+"**/testing.py" = ["PLR2004"]  # suítes de conformidade comparam valores conhecidos
+"examples/**/__main__.py" = ["T201"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool", "possibly-undefined"]
+mypy_path = [
+    "packages/orchestrator-core/src",
+]
+files = [
+    "packages/orchestrator-core/src",
+    "tools",
+]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+minversion = "9.0"
+testpaths = [
+    "packages/orchestrator-core/src",
+    "packages/orchestrator-core/tests",
+    "tools",
+]
+pythonpath = [
+    "packages/orchestrator-core/src",
+]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib", "--doctest-modules"]
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
+filterwarnings = ["error"]
+xfail_strict = true
+markers = ["slow: testes de estresse e de concorrência (mais demorados)"]
+
+[tool.coverage.run]
+branch = true
+source = ["orchestrator_core"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "\\.\\.\\.$", "raise NotImplementedError"]
