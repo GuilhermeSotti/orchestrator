@@ -1,43 +1,28 @@
-# ADR Template
+# ADR-NNNN — Título curto da decisão
 
-**Status:** Proposed | Accepted | Deprecated | Superseded
+| Campo | Valor |
+|---|---|
+| Status | Proposto, Aceito, Depreciado ou Substituído por ADR-NNNN |
+| Data | AAAA-MM-DD |
+| Decisão | Identificador em `docs/DECISIONS.md`, se houver |
+| Decisor | Quem decidiu e com que autoridade |
 
-**Date:** YYYY-MM-DD
+## Contexto
 
-**Decision Maker(s):** @username
+Qual problema motiva a decisão, com evidências.
 
-## Context
+## Decisão
 
-What is the issue that we're seeing that motivates this decision or change?
+O que foi decidido, de forma verificável.
 
-## Decision
+## Alternativas consideradas
 
-What is the change that we're proposing and/or doing?
+O que mais foi avaliado e por que não foi escolhido.
 
-## Rationale
+## Consequências
 
-Why is this the best choice given the context?
+O que fica mais fácil, o que fica mais difícil e o que precisa mudar.
 
-## Consequences
+## Referências
 
-What becomes easier or harder to do because of this change?
-
-### Positive
-
-- 
-
-### Negative
-
--
-
-## Alternatives Considered
-
-What other options were considered and why were they rejected?
-
-## Related ADRs
-
-- [ADR-XXXX](./XXXX-title.md) — Related decision
-
-## References
-
-- 
+Documentos, código e decisões relacionados.
