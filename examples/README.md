@@ -1,6 +1,8 @@
 # Exemplos
 
-Este diretório será usado para armazenar exemplos de uso da plataforma.
+Projetos consumidores reais, com `pyproject.toml` próprio. Na CI, são instalados a partir dos wheels construídos e executados de ponta a ponta.
 
-- `basic-spec.json`: modelo básico de workflow.
-- `sql-spec.json`: exemplo de configuração SQL com especificação de schema, tabelas e fila.
+| Exemplo | Usa | Demonstra |
+|---|---|---|
+| [hello-automation](hello-automation) | `orchestrator-core` | Automação, parâmetros validados, configuração, workspace, logs correlacionados |
+| [sales-report](sales-report) | Core, `orchestrator-sql`, `orchestrator-sqlite` | Capability registrada por classe, banco escolhido pela configuração, transação e consultas parametrizadas |

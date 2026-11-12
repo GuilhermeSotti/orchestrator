@@ -1,265 +1,76 @@
-# Security Policy
+# Política de segurança
 
-## Overview
+A segurança é um princípio de projeto do Orchestrator: requisitos de segurança entram desde a arquitetura, e não numa fase separada.
 
-Security is a fundamental design principle of the Orchestrator platform.
+Princípios: Secure by Design, menor privilégio, defesa em profundidade, Zero Trust, segurança da cadeia de suprimentos, builds reproduzíveis, dependências explícitas e monitoramento contínuo de vulnerabilidades.
 
-The project follows a **Secure by Design** approach, where security requirements are considered from the earliest stages of architecture, development, testing and release.
+## Versões suportadas
 
-Every contributor is responsible for maintaining the security, integrity and trustworthiness of the platform.
+| Pacote | Versão | Correções de segurança |
+|---|---|---|
+| `orchestrator-core` | 0.1.x | Sim |
+| `orchestrator-sql` | 0.1.x | Sim |
+| `orchestrator-sqlite` | 0.1.x | Sim |
 
----
+Antes da 1.0, só a série mais recente de cada pacote recebe correções.
 
-# Security Principles
+## Como reportar uma vulnerabilidade
 
-The platform is built upon the following principles.
+**Não abra issue pública.** Use o reporte privado do GitHub: aba **Security → Report a vulnerability** deste repositório. Se a opção não estiver disponível, abra uma issue pedindo um canal privado, sem nenhum detalhe da vulnerabilidade.
 
-- Secure by Design
-- Least Privilege
-- Defense in Depth
-- Zero Trust
-- Supply Chain Security
-- Reproducible Builds
-- Explicit Dependencies
-- Continuous Vulnerability Monitoring
+Inclua: pacote e versão afetados, descrição, passos para reproduzir, prova de conceito (se houver) e impacto possível.
 
----
+## Divulgação
 
-# Supported Versions
+Vulnerabilidades são tratadas em privado até haver correção. Depois: release corrigida, nota no CHANGELOG do pacote e aviso de segurança no GitHub; CVE quando aplicável.
 
-The following table describes the support policy.
+## Garantias implementadas
 
-| Version | Supported |
-|----------|-----------|
-| Latest Major | ✅ |
-| Previous Major (LTS, when available) | ✅ |
-| Older Versions | ❌ |
+| Tema | Como é tratado |
+|---|---|
+| Dependências do Core | Nenhuma de terceiros; verificado por teste ([ADR-0005](docs/adr/0005-dependencias-do-core.md)) |
+| Segredos | Somente por referência (`env:`, `file:`, resolvedores próprios); valor encapsulado em `Secret`, sem `repr`, sem serialização; literais recusados sem eco do valor ([ADR-0007](docs/adr/0007-configuracao-e-segredos.md)) |
+| Logs, eventos e registros | Segredos resolvidos são mascarados (`***`) em mensagens, tracebacks, eventos e registros de execução |
+| SQL | Valores sempre como parâmetros; identificadores validados e citados; mensagens de erro sem valores de parâmetros ([RFC-0003](docs/rfc/0003-capability-sql.md)) |
+| Plugins | Sem descoberta automática; só Capabilities e Providers registrados explicitamente ([ADR-0009](docs/adr/0009-registro-de-capabilities-e-compatibilidade.md)) |
+| Exceções de infraestrutura | Traduzidas pelos Providers para erros da Capability, sem detalhes internos sensíveis |
+| Arquivos temporários | Workspace criado com `tempfile.mkdtemp` (acesso restrito ao usuário) e removido no `finalize` |
+| Análise estática | Regras `S` do Ruff (equivalentes ao Bandit) na CI |
 
-Security fixes are always applied to the latest supported release.
+## Gestão de segredos
 
----
+Segredos nunca são commitados, nem gravados em código, arquivos de configuração ou logs. Origem: variáveis de ambiente, cofres de segredos ou secret stores de CI/CD. Arquivos `.env` são ignorados pelo Git e não são carregados pelo Core.
 
-# Reporting a Vulnerability
+## Cadeia de suprimentos
 
-If you discover a security vulnerability, **do not open a public Issue**.
+- Ferramentas de desenvolvimento com versões fixadas em `requirements/dev.txt`; lock com hashes pendente ([ADR-0013](docs/adr/0013-build-e-ferramentas.md)).
+- Ações do GitHub fixadas por SHA; workflows com permissão mínima.
+- Builds reproduzíveis verificados por `tools/build_packages.py --check`; releases publicam o SHA-256 de cada artefato.
+- Dependabot para Actions e ferramentas.
+- Evolução prevista, ainda não implementada: SBOM, proveniência, artefatos assinados (Sigstore), SLSA e trusted publishing.
 
-Instead, report it privately to the maintainers.
+## Controles do GitHub
 
-The report should contain:
+Devem ser habilitados pelo responsável, conforme o plano permitir: alertas e atualizações de segurança do Dependabot, secret scanning com push protection, CodeQL (configuração padrão), dependency review e reporte privado de vulnerabilidades. Passo a passo: [docs/guides/governanca-github.md](docs/guides/governanca-github.md).
 
-- affected component
-- affected version
-- description
-- reproduction steps
-- proof of concept (if applicable)
-- possible impact
+## Diretrizes de código seguro
 
----
+Evite: credenciais no código, execução dinâmica não validada, desserialização insegura, injeção de comandos, injeção de SQL, path traversal e arquivos temporários inseguros. Toda entrada externa é não confiável. Providers validam entradas e saídas, tratam falhas e isolam exceções de infraestrutura.
 
-# Disclosure Policy
+## Logs
 
-Security vulnerabilities are handled privately until a fix is available.
+Nunca registre senhas, chaves de API, tokens, connection strings com credenciais, dados pessoais ou identificadores de sessão. Use `orchestrator_core.logs.configure_logging` ou adicione `RedactingFilter` aos seus handlers.
 
-After remediation:
+## Revisão de segurança
 
-- affected users are notified
-- release notes are published
-- CVE registration may be requested when applicable
+Mudanças em criptografia, autenticação, segredos, rede, pipeline de execução, carregamento de plugins ou resolução de dependências exigem revisão arquitetural de segurança no PR.
 
----
+## Resposta a incidentes
 
-# Security Development Lifecycle
-
-Every new feature should consider:
-
-- authentication
-- authorization
-- data validation
-- input sanitization
-- exception handling
-- logging
-- secrets management
-- dependency security
-
-Security reviews are part of the development lifecycle.
-
----
-
-# Dependency Management
-
-All external dependencies must:
-
-- be actively maintained
-- use compatible licenses
-- have an acceptable security history
-- provide regular releases
-- justify their inclusion
-
-Unused dependencies should be removed.
-
----
-
-# Secret Management
-
-Secrets must never be:
-
-- committed to Git
-- stored in source code
-- stored in configuration files
-- exposed in logs
-
-Secrets should be obtained from:
-
-- Environment Variables
-- Secret Managers
-- CI/CD Secret Stores
-
----
-
-# Supply Chain Security
-
-The project adopts modern software supply chain practices.
-
-Artifacts should be:
-
-- reproducible
-- traceable
-- versioned
-- cryptographically verifiable
-
-Future releases will include:
-
-- SBOM
-- Provenance
-- Signed Packages
-- Signed Releases
-
----
-
-# Code Security
-
-All Pull Requests must pass automated security validation.
-
-The CI pipeline includes:
-
-- Static Analysis
-- Dependency Analysis
-- Secret Scanning
-- Vulnerability Scanning
-- License Validation
-
-Pull Requests failing security checks cannot be merged.
-
----
-
-# GitHub Security Features
-
-The repository should enable:
-
-- Dependabot Alerts
-- Dependabot Security Updates
-- Secret Scanning
-- Push Protection
-- Dependency Graph
-- CodeQL
-- Dependency Review
-
----
-
-# Secure Coding Guidelines
-
-Contributors should avoid:
-
-- hardcoded credentials
-- dynamic code execution without validation
-- unsafe deserialization
-- shell injection
-- SQL injection
-- path traversal
-- insecure temporary files
-
-All external input should be considered untrusted.
-
----
-
-# Logging Policy
-
-Sensitive information must never be written to logs.
-
-Examples:
-
-- passwords
-- API keys
-- OAuth tokens
-- connection strings
-- personal data
-- session identifiers
-
-Logs should be structured and sanitized before persistence.
-
----
-
-# Third-Party Integrations
-
-Every Provider must:
-
-- validate input
-- validate output
-- handle failures gracefully
-- isolate infrastructure-specific exceptions
-- avoid leaking implementation details
-
-The Core must never depend directly on third-party libraries.
-
----
-
-# Security Review
-
-Architecture changes involving:
-
-- cryptography
-- authentication
-- secrets
-- networking
-- execution pipeline
-- plugin loading
-- dependency resolution
-
-require an architectural security review.
-
----
-
-# Incident Response
-
-When a security incident is confirmed:
-
-1. Assess severity.
-2. Isolate affected components.
-3. Produce a fix.
-4. Release a patched version.
-5. Publish release notes.
-6. Review root cause.
-7. Update documentation if necessary.
-
----
-
-# Future Security Roadmap
-
-The platform intends to support:
-
-- Signed Commits
-- Signed Releases
-- Sigstore
-- SBOM Generation
-- Provenance Attestations
-- Trusted Publishing
-- SLSA Compliance
-- OpenTelemetry Security Events
-
----
-
-# Security Is Everyone's Responsibility
-
-Security is not a separate phase of development.
-
-Every architectural decision, code review, dependency update and release should improve the overall security posture of the platform.
+1. Avaliar a severidade.
+2. Isolar os componentes afetados.
+3. Produzir a correção, com teste de regressão.
+4. Publicar a versão corrigida.
+5. Publicar as notas de release e o aviso de segurança.
+6. Analisar a causa raiz.
+7. Atualizar a documentação, se necessário.

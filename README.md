@@ -1,63 +1,80 @@
-# Orchestrator Platform
+# Orchestrator
 
-Este repositório inicial serve como a base da governança, documentação e visão arquitetural da plataforma Orchestrator.
+Plataforma modular de automação em Python. Padroniza o ciclo de vida das automações — preparação, execução, finalização, logs, métricas, retry, cancelamento — para que cada projeto consumidor escreva apenas a sua lógica de negócio.
 
-## Objetivo
+## Situação
 
-Criar uma plataforma de automação baseada em Python para servir como base para múltiplos pacotes reutilizáveis, permitindo a construção de automações e integrações com diferentes sistemas.
+| Item | Valor |
+|---|---|
+| Fase | Incubação, série 0.x ([roadmap](docs/IMPLEMENTATION_ROADMAP.md)) |
+| Versões | `orchestrator-core` 0.1.0, `orchestrator-sql` 0.1.0, `orchestrator-sqlite` 0.1.0 |
+| Python | 3.13 ou superior |
+| Publicação | Nenhuma em índice de pacotes; instalação a partir do repositório |
+| Decisões | Todas registradas em [docs/DECISIONS.md](docs/DECISIONS.md) |
 
-## Escopo
+## Pacotes
 
-- Governança do produto
-- Arquitetura de alto nível
-- Documentação e ADRs
-- Roadmap inicial
-- Estrutura para futuros componentes e repositórios
-- Governança GitHub enterprise-ready para branches, rulesets, CODEOWNERS, issues e pull requests
+| Pacote | Papel | Dependências |
+|---|---|---|
+| [`orchestrator-core`](packages/orchestrator-core) | Runtime, Execution Pipeline de oito estágios, Execution Context, contratos de Capability e Provider | Só a biblioteca padrão |
+| [`orchestrator-sql`](packages/orchestrator-sql) | Capability SQL: consultas parametrizadas, transações, identificadores validados | `orchestrator-core` |
+| [`orchestrator-sqlite`](packages/orchestrator-sqlite) | Provider SQLite para a Capability SQL | `orchestrator-sql` |
 
-## Status do projeto
+Os pacotes incubam neste repositório e cada um pode ser separado em repositório próprio ([ADR-0001](docs/adr/0001-topologia-de-repositorios.md)).
 
-- Status: Planning
-- Estratégia de repositórios: multirepo com repositório raiz para governança
-- Diagnóstico técnico: `docs/audit/INITIAL_AUDIT.md` e `docs/audit/CODE_AUDIT.md` (2026-11-11)
+## Exemplo
 
-## Arquitetura de alto nível
+```python
+from orchestrator_core import ExecutionContext, RuntimeBuilder
 
-A plataforma será organizada como um ecossistema de componentes independentes, com um repositório central para governança e documentação e repositórios específicos para cada pacote implementável.
 
-## Estratégia de branches
+def conciliar(ctx: ExecutionContext) -> int:
+    ctx.logger.info("conciliando %s", ctx.parameters["dia"])
+    return 42
 
-- Branch principal: main
-- Não serão utilizados branches legacy como master, develop ou development
 
-## Estrutura inicial
-
-```text
-orchestrator-platform/
-├── .github/
-├── docs/
-├── packages/
-├── examples/
-├── scripts/
-├── templates/
-├── config/
-├── assets/
-├── ADR/
-├── README.md
-├── LICENSE
-├── ROADMAP.md
-├── GOVERNANCE.md
-├── ARCHITECTURE.md
-├── CONTRIBUTING.md
-├── CHANGELOG.md
-├── SECURITY.md
-├── CODE_OF_CONDUCT.md
-└── .gitignore
+runtime = RuntimeBuilder().with_config_file("orchestrator.toml").build()
+result = runtime.run(conciliar, parameters={"dia": "2026-11-12"})
+result.raise_for_status()
 ```
 
-## Roadmap inicial
+Projetos completos: [`examples/hello-automation`](examples/hello-automation) e [`examples/sales-report`](examples/sales-report). Guia: [primeiros passos](docs/guides/primeiros-passos.md).
 
-- Fase 1: criar a base de governança e documentação
-- Fase 2: definir contratos e padrões de componentes
-- Fase 3: publicar o primeiro pacote base
-- Fase 4: expandir para integrações e automações específicas
+## Desenvolvimento
+
+```powershell
+py -3.13 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements\dev.txt
+.venv\Scripts\python -m pip install -e packages\orchestrator-core -e packages\orchestrator-sql -e packages\orchestrator-sqlite -e examples\hello-automation -e examples\sales-report
+
+ruff check .
+ruff format --check .
+mypy
+pytest
+python tools\build_packages.py --check
+python -m tools.e2e
+```
+
+Regras de contribuição: [CONTRIBUTING.md](CONTRIBUTING.md). Governança: [GOVERNANCE.md](GOVERNANCE.md). Segurança: [SECURITY.md](SECURITY.md).
+
+## Estrutura
+
+```text
+orchestrator/
+├── packages/            pacotes distribuíveis (um por pasta, cada um com pyproject, README, CHANGELOG, testes)
+├── examples/            projetos consumidores de exemplo, instalados a partir dos pacotes
+├── docs/                decisões (ADR, RFC), guias, roadmap, compatibilidade, auditorias
+├── tools/               verificações do repositório (links, fronteiras, build reproduzível)
+├── requirements/        versões das ferramentas de desenvolvimento
+├── .github/             CI, release, Dependabot, templates de issue e PR
+├── ARCHITECTURE.md      arquitetura e regras de dependência
+├── GOVERNANCE.md        processo de engenharia
+├── SECURITY.md          política de segurança
+├── CONTRIBUTING.md      como contribuir
+├── ROADMAP.md           resumo do roadmap
+└── CHANGELOG.md         mudanças do repositório (cada pacote tem o seu)
+```
+
+## Licença
+
+MIT. Veja [LICENSE](LICENSE).

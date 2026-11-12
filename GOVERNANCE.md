@@ -1,261 +1,88 @@
-# Governance
+# Governança
 
-## Purpose
+Padrões de engenharia da plataforma Orchestrator. Todo contribuidor segue estas regras.
 
-This document defines the engineering standards adopted by the Orchestrator platform.
+## 1. Repositórios
 
-Every contributor is expected to follow these guidelines.
+Durante a série 0.x, este repositório contém a governança e os pacotes incubados em `packages/`. A topologia-alvo é multirrepositório, com critérios de separação definidos na [ADR-0001](docs/adr/0001-topologia-de-repositorios.md).
 
----
+## 2. Branches
 
-# Repository Strategy
+- Permanente: `main`. Commits diretos em `main` são proibidos.
+- Temporárias: `feature/*`, `fix/*`, `hotfix/*`, `release/*`, `experiment/*`, `docs/*` e `chore/*`.
 
-The platform adopts a Multi-Repository architecture.
+## 3. Pull Requests
 
-Each repository represents a single responsibility.
+Toda mudança entra por Pull Request, com:
 
-Examples:
+- objetivo e motivação;
+- evidência de testes (comandos e resultados);
+- impacto arquitetural e de compatibilidade;
+- ADR, RFC e issues relacionadas.
 
-- orchestrator-core
-- orchestrator-actions
-- orchestrator-sql
-- orchestrator-docker
+Merge por **squash**, com a mensagem do PR em Conventional Commits. Os checks obrigatórios da CI precisam passar. Enquanto houver um único mantenedor, a aprovação de outra pessoa não é exigida; com o segundo, passa a ser exigida uma aprovação ([ADR-0014](docs/adr/0014-ci-e-controles-do-github.md)).
 
-Repositories evolve independently.
+## 4. Commits e versões
 
----
+- Conventional Commits: tipo e escopo em inglês (`feat(core):`, `fix(sql):`, `docs:`), descrição em português.
+- Versionamento semântico por pacote: MAJOR para incompatibilidades, MINOR para funcionalidades, PATCH para correções. Antes da 1.0, uma versão MINOR pode quebrar compatibilidade.
+- Tags: `<distribuição>/v<versão>` (ex.: `orchestrator-core/v0.1.0`). Tags `archive/*` preservam estados históricos.
 
-# Branch Strategy
+Detalhes: [ADR-0018](docs/adr/0018-convencoes-de-commit-branch-e-versao.md).
 
-Permanent branch
+## 5. Decisões
 
-```
-main
-```
+- Mudanças arquiteturais significativas exigem ADR em `docs/adr/`.
+- Funcionalidades grandes ou transversais começam por RFC em `docs/rfc/`, aceita antes da implementação.
+- Registro geral: [docs/DECISIONS.md](docs/DECISIONS.md).
 
-Temporary branches
+## 6. Padrões de código
 
-```
-feature/*
-fix/*
-hotfix/*
-release/*
-experiment/*
-```
+Obrigatórios: type hints, docstrings no estilo Google em inglês, Ruff (lint e formatação compatível com Black), MyPy estrito, Pytest. Código em inglês; documentação narrativa em português ([ADR-0017](docs/adr/0017-titularidade-licenca-idioma-visibilidade.md)).
 
-Direct commits to main are prohibited.
+## 7. Testes
 
----
+- Toda funcionalidade nova tem testes; toda correção de bug tem teste de regressão.
+- Testes de integração quando há infraestrutura envolvida; testes de estresse para componentes críticos (concorrência do Runtime).
+- Cobertura mínima de 90% (linhas e ramos), verificada pela CI.
+- Providers passam na suíte de conformidade da sua Capability; Capabilities passam em `check_capability_conformance` ([ADR-0015](docs/adr/0015-testes-entre-pacotes.md)).
 
-# Pull Requests
+## 8. Dependências
 
-Every change must be submitted through a Pull Request.
+Dependência nova exige justificativa no PR: manutenção, adoção, histórico de segurança, licença e cadência de releases. O Core não aceita dependências de terceiros. Bibliotecas abandonadas não são adotadas.
 
-PRs should contain:
+## 9. Segurança
 
-- objective
-- motivation
-- testing evidence
-- architectural impact
-- related issues
+Política em [SECURITY.md](SECURITY.md). Segredos nunca são commitados. Mudanças em criptografia, autenticação, segredos, rede, pipeline de execução, carregamento de plugins ou resolução de dependências exigem revisão arquitetural de segurança.
 
----
+## 10. Ciclo de vida de uma Capability
 
-# Versioning
+Proposta (RFC) → revisão de arquitetura → implementação → testes (inclusive conformidade) → documentação → release → manutenção → depreciação.
 
-Semantic Versioning is adopted.
+## 11. Depreciação
 
-MAJOR
+Funcionalidades depreciadas continuam disponíveis por pelo menos uma versão MINOR, salvo questão de segurança. Toda depreciação é documentada no CHANGELOG do pacote.
 
-Breaking changes.
+## 12. Releases
 
-MINOR
+Cada release tem notas (CHANGELOG do pacote) e, quando necessário, guia de migração. Processo: [docs/guides/release.md](docs/guides/release.md). Publicar em índice de pacotes exige RFC e autorização do responsável.
 
-New features.
+## 13. Classificação de issues
 
-PATCH
+Bug, Feature, Capability, Documentation, Architecture, Security e Technical Debt (rótulos em `.github/labels.yml`).
 
-Bug fixes.
+## 14. Definition of Done
 
----
+Uma entrega está concluída quando:
 
-# Architecture Decisions
+- a implementação segue os contratos e a arquitetura;
+- type hints e docstrings estão completos;
+- Ruff, formatação, MyPy e Pytest passam, com a cobertura mínima;
+- testes unitários, de integração e de estresse aplicáveis existem;
+- documentação pública, exemplos e CHANGELOG estão atualizados;
+- o PR foi revisado conforme a seção 3;
+- a CI passou.
 
-Significant architectural changes require an ADR.
+## 15. Visão de longo prazo
 
-ADRs are stored under:
-
-```
-docs/adr/
-```
-
----
-
-# RFC Process
-
-Large features begin with an RFC.
-
-Implementation starts only after approval.
-
----
-
-# Coding Standards
-
-Mandatory:
-
-- Type hints
-- Ruff
-- MyPy
-- Pytest
-- Docstrings
-- Black-compatible formatting
-
----
-
-# Testing Policy
-
-Every new feature must include tests.
-
-Minimum expectations:
-
-- unit tests
-- integration tests (when applicable)
-
-Critical components should include stress tests.
-
----
-
-# Dependencies
-
-New dependencies require technical justification.
-
-Selection criteria:
-
-- maintenance
-- community adoption
-- security
-- license compatibility
-- release cadence
-
-Abandoned libraries should not be adopted.
-
----
-
-# Security
-
-Mandatory:
-
-- Secret Scanning
-- Dependabot
-- CodeQL
-- Signed Releases
-- Dependency Review
-
-Secrets must never be committed.
-
----
-
-# Documentation
-
-Every public capability must contain documentation.
-
-Every architectural decision must be documented.
-
-Documentation is part of the Definition of Done.
-
----
-
-# Capability Lifecycle
-
-Every Capability follows the same lifecycle.
-
-Proposal
-
-↓
-
-Architecture Review
-
-↓
-
-Implementation
-
-↓
-
-Testing
-
-↓
-
-Documentation
-
-↓
-
-Release
-
-↓
-
-Maintenance
-
-↓
-
-Deprecation
-
----
-
-# Deprecation Policy
-
-Deprecated features remain available for at least one minor release unless a security issue requires immediate removal.
-
-Deprecations must be documented.
-
----
-
-# Release Policy
-
-Releases are created after feature completion.
-
-Every release includes:
-
-- Release Notes
-- Changelog
-- Migration Guide (if necessary)
-
----
-
-# Issue Classification
-
-Issues are categorized as:
-
-- Bug
-- Feature
-- Capability
-- Documentation
-- Architecture
-- Security
-- Technical Debt
-
----
-
-# Definition of Done
-
-A task is considered complete only when:
-
-- implementation finished
-- tests passing
-- documentation updated
-- changelog updated
-- review approved
-- CI passing
-
----
-
-# Long-Term Vision
-
-The platform is designed to support:
-
-- multiple teams
-- hundreds of automation projects
-- modular capabilities
-- long-term maintenance
-- enterprise governance
-
-Every architectural decision should prioritize extensibility, maintainability and stability over short-term implementation speed.
+A plataforma deve suportar várias equipes, centenas de projetos consumidores e Capabilities modulares por muitos anos. Extensibilidade, manutenibilidade e estabilidade têm prioridade sobre velocidade de curto prazo.
