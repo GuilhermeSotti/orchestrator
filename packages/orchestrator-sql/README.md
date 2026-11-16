@@ -8,6 +8,7 @@
 - Transações com `with session.transaction():`, aninhadas por savepoints. Fora delas, cada comando é confirmado sozinho.
 - Erros do driver traduzidos para `SqlError` e subclasses, com a marca `retryable` para falhas transitórias. Mensagens nunca trazem valores de parâmetros.
 - Sem convenções de consumidor: nenhuma tabela de fila, coluna obrigatória ou gatilho embutido ([ADR-0019](../../docs/adr/0019-convencoes-de-fila-fora-da-plataforma.md)).
+- Credenciais por referência (desde a 0.2.0): o Provider recebe o `SecretStore` da execução em `connect(secrets)` e resolve usuário e senha a cada conexão; o valor nunca fica no Provider nem aparece em logs, eventos ou registros ([RFC-0006](../../docs/rfc/0006-segredos-cofres-e-credenciais-de-providers.md), 2.1).
 
 ## Uso
 

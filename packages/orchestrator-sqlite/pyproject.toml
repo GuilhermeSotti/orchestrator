@@ -24,7 +24,7 @@ classifiers = [
     "Topic :: Database",
     "Typing :: Typed",
 ]
-dependencies = ["orchestrator-core>=0.1,<0.2", "orchestrator-sql>=0.1,<0.2"]
+dependencies = ["orchestrator-core>=0.2,<0.3", "orchestrator-sql>=0.2,<0.3"]
 
 [tool.setuptools.dynamic]
 version = { attr = "orchestrator_sqlite._version.__version__" }

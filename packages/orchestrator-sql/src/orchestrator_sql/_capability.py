@@ -37,7 +37,7 @@ class SqlCapability(Capability[SqlSession]):
     """
 
     default_name: ClassVar[str] = "sql"
-    core_api: ClassVar[str | None] = "0.1"
+    core_api: ClassVar[str | None] = "0.2"
 
     def __init__(self, provider: SqlProvider) -> None:
         """Create the Capability around ``provider``."""
@@ -87,10 +87,11 @@ class SqlCapability(Capability[SqlSession]):
     def open(self, ctx: ExecutionContext) -> SqlSession:
         """Connect and return the session of this execution.
 
-        The connection is closed in ``finalize``; a transaction left open by the
-        automation is rolled back first.
+        The Provider receives the secret store of the execution to resolve its
+        credentials. The connection is closed in ``finalize``; a transaction
+        left open by the automation is rolled back first.
         """
-        session = SqlSession(self._provider, self._provider.connect())
+        session = SqlSession(self._provider, self._provider.connect(ctx.secrets))
         ctx.resources.callback(session.close)
         ctx.add_finalizer(session.finalize)
         _logger.debug("SQL session opened: %s", self._provider.describe())

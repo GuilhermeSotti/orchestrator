@@ -26,7 +26,8 @@ APPROVED = {
     "ResourceScope", "RetryAttempt", "RetryPolicy", "Runtime", "RuntimeBuilder",
     "RuntimeSettings", "Secret", "SecretRef", "SecretResolutionError", "SecretResolver",
     "SecretStore", "Stage", "StageFinished", "StageOutcome", "StageRecord", "StageStarted",
-    "StageStatus", "__version__", "is_retryable", "retry",
+    "StageStatus", "StepFinished", "StepOutcome", "StepRecord", "StepStarted", "__version__",
+    "is_retryable", "retry",
 }  # fmt: skip
 
 PUBLIC_SUBMODULES = {
@@ -36,7 +37,7 @@ PUBLIC_SUBMODULES = {
     },
     "orchestrator_core.testing": {
         "EventRecorder", "FakeClock", "InMemoryMetrics", "InMemoryRecordSink",
-        "check_capability_conformance",
+        "check_capability_conformance", "make_secret_store",
     },
 }  # fmt: skip
 
@@ -104,6 +105,21 @@ def test_internal_modules_are_private() -> None:
     public = {"__init__.py", "logs.py", "testing.py"}
     for path in SRC.glob("*.py"):
         assert path.name in public or path.name.startswith("_"), path.name
+
+
+def test_members_added_in_0_2_exist() -> None:
+    """RFC-0002, section 2.1: members added to existing public classes in 0.2.0."""
+    context = orchestrator_core.ExecutionContext
+    for member in ("redact", "step", "stages"):
+        assert hasattr(context, member), member
+    fields = {
+        orchestrator_core.ExecutionOutcome: {"error_info"},
+        orchestrator_core.ExecutionResult: {"steps"},
+        orchestrator_core.ExecutionRecord: {"steps", "steps_truncated"},
+        orchestrator_core.RuntimeSettings: {"teardown_timeout", "max_steps"},
+    }
+    for cls, names in fields.items():
+        assert names <= set(cls.__dataclass_fields__), cls.__name__
 
 
 def test_package_is_typed() -> None:

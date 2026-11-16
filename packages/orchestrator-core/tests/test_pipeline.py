@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
 
 from orchestrator_core import (
+    Capability,
+    ConfigurationError,
     ExecutionContext,
     ExecutionFailedError,
     ExecutionFinished,
@@ -22,7 +25,7 @@ from orchestrator_core import (
     StageStatus,
     _stages,
 )
-from orchestrator_core.testing import EventRecorder, InMemoryRecordSink
+from orchestrator_core.testing import EventRecorder, InMemoryMetrics, InMemoryRecordSink
 
 STAGES = (
     "initialize",
@@ -347,24 +350,107 @@ def test_workspace_is_unavailable_unless_enabled(builder: RuntimeBuilder) -> Non
     assert "runtime.workspace" in str(result.error)
 
 
-def test_record_sinks_receive_the_record_and_their_failures_are_reported(
-    builder: RuntimeBuilder, sink: InMemoryRecordSink
+def test_record_sink_failures_never_change_the_execution(
+    builder: RuntimeBuilder,
+    sink: InMemoryRecordSink,
+    metrics: InMemoryMetrics,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    """RFC-0009, answer 6: a failing sink is reported, never turned into a failure."""
+
     class BrokenSink:
         def write(self, record: object) -> None:
             raise OSError("disk full")
 
-    runtime = builder.with_record_sink(BrokenSink()).build()
-    result = runtime.run(lambda ctx: None, name="report")
+    after = InMemoryRecordSink()
+    runtime = builder.with_record_sink(BrokenSink()).with_record_sink(after).build()
+    with caplog.at_level(logging.WARNING, logger="orchestrator_core.stages"):
+        result = runtime.run(lambda ctx: None, name="report")
     (record,) = sink.records
     assert record.automation == "report"
     assert record.status is ExecutionStatus.SUCCEEDED
     assert [s.name for s in record.stages] == list(STAGES[:6])
+    assert after.records == [record]  # the sinks after the broken one still run
+    assert result.status is ExecutionStatus.SUCCEEDED
+    assert result.error is None
+    assert result.teardown_errors == ()
+    assert result.stage("persist_logs").status is StageStatus.SUCCEEDED
+    assert metrics.counter("orchestrator.record_sink.errors", sink="BrokenSink") == 1.0
+    (warning,) = [r for r in caplog.records if "record sink" in r.getMessage()]
+    assert "BrokenSink" in warning.getMessage()
+    assert warning.exc_info is not None
+
+
+def test_record_sink_failure_does_not_mask_a_failed_execution(builder: RuntimeBuilder) -> None:
+    class BrokenSink:
+        def write(self, record: object) -> None:
+            raise OSError("disk full")
+
+    def automation(ctx: ExecutionContext) -> None:
+        raise Boom("primary")
+
+    result = builder.with_record_sink(BrokenSink()).build().run(automation)
     assert result.status is ExecutionStatus.FAILED
-    assert isinstance(result.error, OSError)
-    assert result.record.to_dict()["teardown_errors"] == [
-        {"type": "OSError", "message": "disk full"}
-    ]
+    assert isinstance(result.error, Boom)
+    assert result.teardown_errors == ()
+
+
+def test_context_lists_the_configured_stages(builder: RuntimeBuilder) -> None:
+    """RFC-0007, answer 6: a Capability can see which stages are installed."""
+    seen: list[tuple[str, ...]] = []
+
+    class Inspect(Capability[None]):
+        default_name = "inspect"
+
+        def open(self, ctx: ExecutionContext) -> None:
+            seen.append(ctx.stages)
+
+    stage = FunctionStage("notify_outcome", Phase.TEARDOWN, lambda ctx: None)
+    runtime = builder.with_capability(Inspect()).with_stage(stage, after="finalize").build()
+    result = runtime.run(lambda ctx: seen.append(ctx.stages))
+    assert result.succeeded
+    expected = (*STAGES[:6], "notify_outcome", *STAGES[6:])
+    assert seen == [expected, expected]
+    assert runtime.stages == expected
+
+
+def test_capability_can_refuse_a_missing_stage_before_the_automation_runs(
+    builder: RuntimeBuilder,
+) -> None:
+    ran: list[str] = []
+
+    class NeedsStage(Capability[None]):
+        default_name = "needs_stage"
+
+        def open(self, ctx: ExecutionContext) -> None:
+            if "notify_outcome" not in ctx.stages:
+                msg = "lifecycle notifications are configured but NotifyOutcome is not installed"
+                raise ConfigurationError(msg)
+
+    result = builder.with_capability(NeedsStage()).build().run(lambda ctx: ran.append("x"))
+    assert result.status is ExecutionStatus.FAILED
+    assert isinstance(result.error, ConfigurationError)
+    assert result.stage("execute_automation").status is StageStatus.SKIPPED
+    assert ran == []
+
+
+def test_finalizers_receive_a_masked_error_description(builder: RuntimeBuilder) -> None:
+    infos: list[ExecutionOutcome] = []
+
+    def automation(ctx: ExecutionContext) -> None:
+        ctx.add_finalizer(infos.append)
+        raise Boom("broken")
+
+    result = builder.build().run(automation)
+    (outcome,) = infos
+    assert outcome.status is ExecutionStatus.FAILED
+    assert outcome.error is result.error
+    assert outcome.error_info is not None
+    assert outcome.error_info.message == "broken"
+    assert outcome.error_info.type.endswith("Boom")
+    succeeded: list[ExecutionOutcome] = []
+    assert builder.build().run(lambda ctx: ctx.add_finalizer(succeeded.append)).succeeded
+    assert succeeded[0].error_info is None
 
 
 def test_keyboard_interrupt_runs_teardown_then_propagates(
@@ -409,3 +495,30 @@ def test_run_argument_validation(builder: RuntimeBuilder) -> None:
 
 def _raise(error: BaseException) -> None:
     raise error
+
+
+def test_an_exception_whose_str_fails_does_not_break_the_pipeline(
+    builder: RuntimeBuilder, events: EventRecorder
+) -> None:
+    """Regression (audit of 2026-11-15): in 0.1.0, run() raised and skipped teardown."""
+    released: list[str] = []
+
+    class Unprintable(Exception):
+        def __str__(self) -> str:
+            raise RuntimeError("str() is broken")
+
+    def automation(ctx: ExecutionContext) -> None:
+        ctx.resources.callback(released.append, "resource")
+        with ctx.step("call_driver"):
+            raise Unprintable
+
+    result = builder.build().run(automation)
+    assert result.status is ExecutionStatus.FAILED
+    assert isinstance(result.error, Unprintable)
+    assert released == ["resource"]  # teardown ran
+    assert result.record.error is not None
+    assert result.record.error.message == "<exception str() failed>"
+    assert result.record.steps[0].error is not None
+    assert result.record.steps[0].error.message == "<exception str() failed>"
+    (finished,) = events.of_type(ExecutionFinished)
+    assert finished.status is ExecutionStatus.FAILED

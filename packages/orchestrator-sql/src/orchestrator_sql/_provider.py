@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, ClassVar, Protocol, Self
 
-from orchestrator_core import ConfigSection
+from orchestrator_core import ConfigSection, SecretStore
 from orchestrator_sql._errors import SqlError
 from orchestrator_sql._schema import SqlType
 
@@ -64,7 +64,11 @@ class SqlProvider(ABC):
       ``:name`` placeholders can be translated;
     * translate driver exceptions into :class:`SqlError` subclasses, without
       parameter values or credentials in the messages;
-    * never log or expose credentials (resolve them as secrets).
+    * never log or expose credentials: keep only secret *references* read in
+      :meth:`from_config` (``section.get_secret_ref(...)``) and resolve them in
+      :meth:`connect` through the ``secrets`` store of the execution. The
+      resolved value must not be kept in attributes, returned by
+      :meth:`describe` or included in translated errors.
 
     Attributes:
         dialect: Name of the engine, such as ``"sqlite"`` or ``"postgresql"``.
@@ -83,8 +87,13 @@ class SqlProvider(ABC):
         """Check prerequisites; raise ``CapabilityUnavailableError`` if not met."""
 
     @abstractmethod
-    def connect(self) -> DbapiConnection:
+    def connect(self, secrets: SecretStore) -> DbapiConnection:
         """Open a connection in autocommit mode.
+
+        Args:
+            secrets: Secret store of the execution (``ctx.secrets``), used to
+                resolve the credential references of the Provider. Values it
+                resolves are registered for masking in logs, events and records.
 
         Raises:
             SqlConnectionError: If the database cannot be reached.

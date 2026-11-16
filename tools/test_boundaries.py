@@ -22,12 +22,32 @@ ALLOWED = {
         "orchestrator_sql",
         "orchestrator_sqlite",
     },
+    "packages/orchestrator-notifications": {"orchestrator_core", "orchestrator_notifications"},
+    "packages/orchestrator-notifications-smtp": {
+        "orchestrator_core",
+        "orchestrator_notifications",
+        "orchestrator_notifications_smtp",
+    },
+    "packages/orchestrator-notifications-teams": {
+        "orchestrator_core",
+        "orchestrator_notifications",
+        "orchestrator_notifications_teams",
+    },
+    "packages/orchestrator-records-file": {"orchestrator_core", "orchestrator_records_file"},
+    "packages/orchestrator-calendar": {"orchestrator_core", "orchestrator_calendar"},
     "examples/hello-automation": {"orchestrator_core", "hello_automation"},
     "examples/sales-report": {
         "orchestrator_core",
         "orchestrator_sql",
         "orchestrator_sqlite",
         "sales_report",
+    },
+    "examples/batch-check": {
+        "orchestrator_core",
+        "orchestrator_notifications",
+        "orchestrator_notifications_smtp",
+        "orchestrator_notifications_teams",
+        "batch_check",
     },
 }
 TEST_ONLY = {"pytest"}
@@ -77,6 +97,17 @@ def test_package_dependencies_match_the_boundaries() -> None:
         "packages/orchestrator-core": set(),
         "packages/orchestrator-sql": {"orchestrator-core"},
         "packages/orchestrator-sqlite": {"orchestrator-core", "orchestrator-sql"},
+        "packages/orchestrator-notifications": {"orchestrator-core"},
+        "packages/orchestrator-notifications-smtp": {
+            "orchestrator-core",
+            "orchestrator-notifications",
+        },
+        "packages/orchestrator-notifications-teams": {
+            "orchestrator-core",
+            "orchestrator-notifications",
+        },
+        "packages/orchestrator-records-file": {"orchestrator-core"},
+        "packages/orchestrator-calendar": {"orchestrator-core"},
     }
     for project, dependencies in expected.items():
         data = tomllib.loads((ROOT / project / "pyproject.toml").read_text(encoding="utf-8"))

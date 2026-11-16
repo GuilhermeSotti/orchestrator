@@ -9,8 +9,14 @@ src = [
     "packages/orchestrator-core/src",
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
+    "packages/orchestrator-notifications/src",
+    "packages/orchestrator-notifications-smtp/src",
+    "packages/orchestrator-notifications-teams/src",
+    "packages/orchestrator-records-file/src",
+    "packages/orchestrator-calendar/src",
     "examples/hello-automation/src",
     "examples/sales-report/src",
+    "examples/batch-check/src",
 ]
 
 [tool.ruff.lint]
@@ -49,15 +55,27 @@ mypy_path = [
     "packages/orchestrator-core/src",
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
+    "packages/orchestrator-notifications/src",
+    "packages/orchestrator-notifications-smtp/src",
+    "packages/orchestrator-notifications-teams/src",
+    "packages/orchestrator-records-file/src",
+    "packages/orchestrator-calendar/src",
     "examples/hello-automation/src",
     "examples/sales-report/src",
+    "examples/batch-check/src",
 ]
 files = [
     "packages/orchestrator-core/src",
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
+    "packages/orchestrator-notifications/src",
+    "packages/orchestrator-notifications-smtp/src",
+    "packages/orchestrator-notifications-teams/src",
+    "packages/orchestrator-records-file/src",
+    "packages/orchestrator-calendar/src",
     "examples/hello-automation/src",
     "examples/sales-report/src",
+    "examples/batch-check/src",
     "tools",
 ]
 
@@ -70,16 +88,33 @@ testpaths = [
     "packages/orchestrator-sql/tests",
     "packages/orchestrator-sqlite/src",
     "packages/orchestrator-sqlite/tests",
+    "packages/orchestrator-notifications/src",
+    "packages/orchestrator-notifications/tests",
+    "packages/orchestrator-notifications-smtp/src",
+    "packages/orchestrator-notifications-smtp/tests",
+    "packages/orchestrator-notifications-teams/src",
+    "packages/orchestrator-notifications-teams/tests",
+    "packages/orchestrator-records-file/src",
+    "packages/orchestrator-records-file/tests",
+    "packages/orchestrator-calendar/src",
+    "packages/orchestrator-calendar/tests",
     "examples/hello-automation/tests",
     "examples/sales-report/tests",
+    "examples/batch-check/tests",
     "tools",
 ]
 pythonpath = [
     "packages/orchestrator-core/src",
     "packages/orchestrator-sql/src",
     "packages/orchestrator-sqlite/src",
+    "packages/orchestrator-notifications/src",
+    "packages/orchestrator-notifications-smtp/src",
+    "packages/orchestrator-notifications-teams/src",
+    "packages/orchestrator-records-file/src",
+    "packages/orchestrator-calendar/src",
     "examples/hello-automation/src",
     "examples/sales-report/src",
+    "examples/batch-check/src",
 ]
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib", "--doctest-modules"]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
@@ -89,7 +124,7 @@ markers = ["slow: testes de estresse e de concorrência (mais demorados)"]
 
 [tool.coverage.run]
 branch = true
-source = ["orchestrator_core", "orchestrator_sql", "orchestrator_sqlite"]
+source = ["orchestrator_core", "orchestrator_sql", "orchestrator_sqlite", "orchestrator_notifications", "orchestrator_notifications_smtp", "orchestrator_notifications_teams", "orchestrator_records_file", "orchestrator_calendar"]
 
 [tool.coverage.report]
 fail_under = 90

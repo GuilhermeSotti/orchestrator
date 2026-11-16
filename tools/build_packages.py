@@ -27,7 +27,16 @@ from collections.abc import Sequence
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGES = ("orchestrator-core", "orchestrator-sql", "orchestrator-sqlite")
+PACKAGES = (
+    "orchestrator-core",
+    "orchestrator-sql",
+    "orchestrator-sqlite",
+    "orchestrator-notifications",
+    "orchestrator-notifications-smtp",
+    "orchestrator-notifications-teams",
+    "orchestrator-records-file",
+    "orchestrator-calendar",
+)
 DEFAULT_EPOCH = "1794441600"  # 2026-11-12T00:00:00Z, used when Git is unavailable
 
 _BUILD = (  # setuptools rewrites sys.argv during a build: read the arguments first

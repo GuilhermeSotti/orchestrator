@@ -4,6 +4,32 @@ Mudanças de governança, documentação, CI e estrutura. Cada pacote tem o seu 
 
 ## [Não lançado]
 
+### Adicionado
+
+- `packages/orchestrator-calendar` 0.1.0, Capability de calendários com fonte em arquivo (RFC-0011), na branch `feature/calendar`; `tools/e2e.py` o usa a partir do wheel.
+- `packages/orchestrator-records-file` 0.1.0, destinos em arquivo de registros e logs (RFC-0009), na branch `feature/records-file`; `tools/e2e.py` o usa a partir do wheel.
+- `examples/batch-check`: projeto consumidor que demonstra as notificações; `tools/e2e.py` o executa a partir dos wheels contra um servidor SMTP local.
+- `packages/orchestrator-notifications-teams` 0.1.0, canal do Microsoft Teams (RFC-0007, seção 6), na branch `feature/notifications-teams`.
+- `packages/orchestrator-notifications-smtp` 0.1.0, canal de e-mail (RFC-0007, seção 6), na branch `feature/notifications-smtp`.
+- `packages/orchestrator-notifications` 0.1.0, Capability de notificações (RFC-0007), na branch `feature/notifications`.
+- Diagnóstico de escopo dos controles reutilizáveis de automação (`docs/audit/SCOPE_DIAGNOSIS.md`).
+- RFCs 0004 a 0012, em proposta e não aceitas: escopo e sequência, Core 0.2, segredos, notificações, fila, registros e logs, mapeamentos, calendários e autenticação por sistema.
+- Respostas do responsável às perguntas das RFCs 0004 a 0012 (2026-11-15), gravadas nas próprias RFCs.
+- Reconciliação das respostas (`docs/audit/RFC_RESPONSE_RECONCILIATION.md`): classificação de cada pergunta, DS-1 a DS-8, 34 conflitos e lacunas, aceite por parte e decisões pedidas.
+- Guia de encerramento por sinal (`docs/guides/encerramento-por-sinal.md`).
+- Fase 7 no roadmap de implementação.
+- RFC-0013 (valores de segredos em SQL: avaliação de segurança) e RFC-0014 (subetapas padrão de finalização do ciclo de vida e de sistemas e processos), em proposta e não aceitas.
+- Consolidação do Core 0.2.0 (`docs/audit/CORE_020_CONSOLIDATION.md`): estado inicial, auditoria, correções, compatibilidade, validação e estado da integração.
+
+### Alterado
+
+- `docs/DECISIONS.md`: pendências conferidas em 2026-11-15 e respostas do responsável, sem aceite formal das RFCs.
+- `docs/DECISIONS.md`: decisões de encaminhamento de 2026-11-15 (seção 4, DE-1 a DE-4), sem aceite de RFC; pendências 7 a 9 revistas.
+- RFCs 0004 a 0012 aceitas pelo responsável em 2026-11-15: cabeçalhos, índice das RFCs, `docs/DECISIONS.md` (seção 5; pendência 7 resolvida), roadmap e changelog do Core. RFC-0013 e RFC-0014 continuam em proposta.
+- Roadmap (Fase 7), índice das RFCs, reconciliação (decisões posteriores, seção 9) e guia de recuperação do histórico (nota de 2026-11-15).
+- RFC-0001 (notas da 0.2.0), RFC-0002 (seção 2.1, acréscimos da 0.2.0), RFC-0003 (`connect(secrets)`), `docs/COMPATIBILITY.md` (0.2.0), `ARCHITECTURE.md`, `SECURITY.md` e os guias de configuração e de Capabilities e Providers.
+- Exemplos 0.2.0: o ponto de entrada liga `SIGTERM` e Ctrl+Break ao token de cancelamento e exige os pacotes 0.2.
+
 ## 2026-11-12
 
 ### Adicionado

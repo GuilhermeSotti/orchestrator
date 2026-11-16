@@ -8,7 +8,8 @@ Demonstra:
 - parâmetros validados no estágio `prepare_execution`;
 - configuração em `orchestrator.toml`, sobrescrevível por variáveis `ORCHESTRATOR_*`;
 - workspace temporário por execução, removido no `finalize`;
-- logs correlacionados e resultado com o registro da execução.
+- logs correlacionados e resultado com o registro da execução;
+- `SIGTERM` e Ctrl+Break ligados ao token de cancelamento no ponto de entrada, para que o término passe pelo teardown e pelo `ExecutionFinished` ([guia](../../docs/guides/encerramento-por-sinal.md)).
 
 ## Executar
 

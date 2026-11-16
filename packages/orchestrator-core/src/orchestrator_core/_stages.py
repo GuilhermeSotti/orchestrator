@@ -10,8 +10,10 @@ from typing import TYPE_CHECKING, Final
 
 from orchestrator_core._context import internal_state
 from orchestrator_core._events import ExecutionStarted
+from orchestrator_core._metrics import RECORD_SINK_ERRORS
 from orchestrator_core._pipeline import PipelineDefinition, Stage
 from orchestrator_core._results import Phase
+from orchestrator_core._secrets import discard_secrets
 
 if TYPE_CHECKING:
     from orchestrator_core._context import ExecutionContext
@@ -158,7 +160,12 @@ class FinalizeStage(Stage):
 
 
 class PersistLogsStage(Stage):
-    """Delivers the execution record to the record sinks and flushes log handlers."""
+    """Delivers the execution record to the record sinks and flushes log handlers.
+
+    A sink that raises never changes the status or the flow of the execution
+    (RFC-0009): the failure is logged as a warning and counted in the
+    ``orchestrator.record_sink.errors`` metric, and the other sinks still run.
+    """
 
     name = PERSIST_LOGS
     phase = Phase.TEARDOWN
@@ -166,17 +173,22 @@ class PersistLogsStage(Stage):
     def run(self, ctx: ExecutionContext) -> None:
         """Persist the record of the execution."""
         state = internal_state(ctx)
-        errors: list[BaseException] = []
         if state.record_sinks and state.record_builder is not None:
             record = state.record_builder()
             for sink in state.record_sinks:
                 try:
                     sink.write(record)
-                except Exception as exc:  # noqa: BLE001 - collected and re-raised below
-                    errors.append(exc)
+                except Exception as exc:  # reported; never affects the execution (RFC-0009)
+                    kind = type(sink)
+                    _logger.warning(
+                        "record sink %s.%s failed; the execution status is not affected",
+                        kind.__module__,
+                        kind.__qualname__,
+                        exc_info=exc,
+                    )
+                    ctx.metrics.increment(RECORD_SINK_ERRORS, tags={"sink": kind.__name__})
         _flush_handlers(ctx.logger.logger)
         _flush_handlers(_logger)
-        raise_collected(errors, self.name)
 
 
 class ShutdownStage(Stage):
@@ -186,8 +198,9 @@ class ShutdownStage(Stage):
     phase = Phase.TEARDOWN
 
     def run(self, ctx: ExecutionContext) -> None:
-        """Close the execution context."""
+        """Close the execution context and discard the secrets it resolved."""
         internal_state(ctx).closed = True
+        discard_secrets(ctx.secrets)
 
 
 def _flush_handlers(logger: logging.Logger) -> None:

@@ -9,7 +9,8 @@ from typing import Any, ClassVar, Self
 
 import pytest
 
-from orchestrator_core import ConfigSection
+from orchestrator_core import ConfigSection, SecretStore
+from orchestrator_core.testing import make_secret_store
 from orchestrator_sql import (
     Column,
     SqlError,
@@ -36,7 +37,7 @@ class StdlibSqlite(SqlProvider):
         section.check_keys(("database",))
         return cls(section.get_str("database", ":memory:"))
 
-    def connect(self) -> sqlite3.Connection:
+    def connect(self, secrets: SecretStore) -> sqlite3.Connection:
         return sqlite3.connect(self.database, autocommit=True)
 
     def is_driver_error(self, error: BaseException) -> bool:
@@ -99,7 +100,7 @@ def recording_provider(style: str) -> type[StdlibSqlite]:
     class Recording(StdlibSqlite):
         paramstyle: ClassVar[str] = style
 
-        def connect(self) -> RecordingConnection:  # type: ignore[override]
+        def connect(self, secrets: SecretStore) -> RecordingConnection:  # type: ignore[override]
             return RecordingConnection()
 
     return Recording
@@ -131,7 +132,7 @@ def fakes() -> SimpleNamespace:
 def session(request: pytest.FixtureRequest) -> Iterator[SqlSession]:
     """Session on an in-memory database with the ``people`` table, for both paramstyles."""
     provider = request.param()
-    session = SqlSession(provider, provider.connect())
+    session = SqlSession(provider, provider.connect(make_secret_store()))
     session.create_table(PEOPLE)
     yield session
     session.close()

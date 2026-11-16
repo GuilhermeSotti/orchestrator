@@ -30,8 +30,15 @@ from typing import Any
 from orchestrator_core._capabilities import Capability
 from orchestrator_core._context import ExecutionContext
 from orchestrator_core._events import Event
+from orchestrator_core._redaction import Redactor
 from orchestrator_core._results import ExecutionRecord, ExecutionResult
 from orchestrator_core._runtime import RuntimeBuilder
+from orchestrator_core._secrets import (
+    EnvSecretResolver,
+    FileSecretResolver,
+    SecretResolver,
+    SecretStore,
+)
 
 __all__ = [
     "EventRecorder",
@@ -39,6 +46,7 @@ __all__ = [
     "InMemoryMetrics",
     "InMemoryRecordSink",
     "check_capability_conformance",
+    "make_secret_store",
 ]
 
 _DEFAULT_WALL_START = datetime(2026, 1, 1, tzinfo=UTC)
@@ -161,6 +169,34 @@ class InMemoryRecordSink:
             self.records.append(record)
 
 
+def make_secret_store(resolvers: Mapping[str, SecretResolver] | None = None) -> SecretStore:
+    """Return a :class:`SecretStore` for tests of Providers, outside a Runtime.
+
+    Inside executions, Providers receive ``ctx.secrets``; this helper lets a
+    Provider's tests call methods such as ``connect(secrets)`` directly. As in a
+    Runtime, ``env:`` and ``file:`` references are resolved by default. Values
+    it resolves are registered in a private masking registry, not in the
+    process-wide one used by the logging filters.
+
+    Example:
+        >>> class Fixed:
+        ...     def resolve(self, target: str) -> str:
+        ...         return "s3cr3t-" + target
+        >>> store = make_secret_store({"test": Fixed()})
+        >>> store.resolve("test:db").reveal()
+        's3cr3t-db'
+
+    Args:
+        resolvers: Extra resolvers by scheme; they replace the defaults for the
+            same scheme.
+    """
+    defaults: dict[str, SecretResolver] = {
+        "env": EnvSecretResolver(),
+        "file": FileSecretResolver(),
+    }
+    return SecretStore({**defaults, **(resolvers or {})}, Redactor())
+
+
 def check_capability_conformance(
     capability: Capability[Any],
     *,
@@ -169,6 +205,7 @@ def check_capability_conformance(
     sequential_runs: int = 3,
     concurrent_runs: int = 8,
     workers: int = 4,
+    secret_resolvers: Mapping[str, SecretResolver] | None = None,
 ) -> None:
     """Assert that ``capability`` honors the Capability contract.
 
@@ -187,16 +224,19 @@ def check_capability_conformance(
         sequential_runs: Number of executions run one after the other.
         concurrent_runs: Number of executions run in a thread pool.
         workers: Size of the thread pool.
+        secret_resolvers: Extra secret resolvers by scheme, for Capabilities
+            whose Providers resolve credentials (``env:`` and ``file:`` are
+            always available).
 
     Raises:
         AssertionError: If a check fails.
     """
-    runtime = (
-        RuntimeBuilder()
-        .with_environment({}, prefix=None)
-        .with_capability(capability, name=name)
-        .build()
+    builder = (
+        RuntimeBuilder().with_environment({}, prefix=None).with_capability(capability, name=name)
     )
+    for scheme, resolver in (secret_resolvers or {}).items():
+        builder.with_secret_resolver(scheme, resolver)
+    runtime = builder.build()
     key = type(capability)
     handles: list[object] = []
     contexts: list[ExecutionContext] = []

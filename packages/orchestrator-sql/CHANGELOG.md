@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). 
 
 ## [Não lançado]
 
+Versão 0.2.0 preparada em 2026-11-15 na branch local `feature/core-0.2`, sem push, tag nem release; depende do `orchestrator-core` 0.2.0 e entra no mesmo Pull Request.
+
+### Alterado
+
+- **Quebra para autores de Providers**: `SqlProvider.connect()` passa a `connect(secrets: SecretStore)`. O Provider guarda só referências de segredo e resolve as credenciais a cada conexão com o `SecretStore` da execução, que registra os valores para mascaramento ([RFC-0006](../../docs/rfc/0006-segredos-cofres-e-credenciais-de-providers.md), 2.1, opção A escolhida pelo responsável). Quem só usa `SqlSession` não muda código.
+- `SqlCapability.open` entrega `ctx.secrets` ao Provider; `core_api = "0.2"`; dependência `orchestrator-core>=0.2,<0.3`.
+- `SqlProviderContract`: novo gancho `secret_resolvers()`; `session()` resolve credenciais com `make_secret_store`; os testes que montam um Runtime registram os resolvedores do gancho.
+
+### Adicionado
+
+- Teste de conformidade `test_credentials_are_not_kept_or_exposed`: valores resolvidos em `connect` não podem aparecer nos atributos, em `describe()` nem em `repr()` do Provider.
+
 ## [0.1.0] — 2026-11-12
 
 Primeira versão ([RFC-0003](../../docs/rfc/0003-capability-sql.md)). Substitui o pacote `orchestrator_sql` do scaffold de julho de 2026, que foi arquivado.

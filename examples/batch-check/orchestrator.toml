@@ -1,0 +1,20 @@
+# Configuração do exemplo batch-check (avisos por e-mail).
+# O servidor SMTP local, sem TLS, serve só para a demonstração.
+
+[capabilities.notifications]
+default_channels = ["ops"]
+
+[capabilities.notifications.lifecycle]
+succeeded = ["ops"]
+failed = ["ops"]
+cancelled = ["ops"]
+timed_out = ["ops"]
+
+[capabilities.notifications.channels.ops]
+provider = "smtp"
+host = "127.0.0.1"
+port = 2525
+security = "none"
+sender = "automacao@exemplo.com"
+to = ["operacao@exemplo.com"]
+timeout = 5

@@ -11,6 +11,9 @@ import pytest
 from orchestrator_core import (
     Event,
     ExecutionContext,
+    ExecutionOutcome,
+    FunctionStage,
+    Phase,
     RuntimeBuilder,
     Secret,
     SecretRef,
@@ -161,3 +164,150 @@ def test_sentinel_secret_never_reaches_logs_events_records_or_repr() -> None:
     assert result.record.error is not None
     assert result.record.error.message == "request failed with token ***"
     assert SENTINEL in str(result.error)  # the raw exception is kept for programmatic use
+
+
+def test_redact_and_error_info_protect_text_built_by_finalizers_and_teardown_stages() -> None:
+    """RFC-0005, 2.1 (E7.3): text sent out by teardown code can be masked by the public API."""
+    sent: list[str] = []
+
+    def report(ctx: ExecutionContext) -> None:
+        outcome = ctx.outcome
+        assert outcome is not None
+        sent.append(ctx.redact(f"stage saw {outcome.error}"))
+
+    runtime = (
+        RuntimeBuilder()
+        .with_environment({}, prefix=None)
+        .with_secret_resolver("env", EnvSecretResolver({"API_TOKEN": SENTINEL}))
+        .with_stage(FunctionStage("report", Phase.TEARDOWN, report), after="finalize")
+        .build()
+    )
+
+    def automation(ctx: ExecutionContext) -> None:
+        token = ctx.secrets.resolve("env:API_TOKEN").reveal()
+
+        def notify(outcome: ExecutionOutcome) -> None:
+            assert outcome.error_info is not None
+            sent.append(f"{outcome.error_info.type}: {outcome.error_info.message}")
+            sent.append(ctx.redact(f"raw: {outcome.error}"))
+            sent.append(ctx.redact("text without secrets stays intact"))
+
+        ctx.add_finalizer(notify)
+        raise RuntimeError(f"request failed with token {token}")
+
+    result = runtime.run(automation)
+    assert result.status.value == "failed"
+    assert SENTINEL in str(result.error)  # the raw exception still has it
+    assert sent == [
+        "RuntimeError: request failed with token ***",
+        "raw: request failed with token ***",
+        "text without secrets stays intact",
+        "stage saw request failed with token ***",
+    ]
+    for text in sent:
+        assert SENTINEL not in text
+
+
+def test_make_secret_store_resolves_with_a_private_masking_registry() -> None:
+    from orchestrator_core._redaction import default_redactor
+    from orchestrator_core.testing import make_secret_store
+
+    private = "only-in-the-test-store-4b1d"
+
+    class Fixed:
+        def resolve(self, target: str) -> str:
+            return f"{private}-{target}"
+
+    store = make_secret_store({"test": Fixed()})
+    assert store.schemes == ("env", "file", "test")
+    assert store.resolve("test:db").reveal() == f"{private}-db"
+    assert default_redactor.redact(f"{private}-db") == f"{private}-db"  # not registered there
+    with pytest.raises(SecretResolutionError, match="no secret resolver"):
+        make_secret_store().resolve("kv:any")
+    with pytest.raises(SecretResolutionError, match="is not set"):
+        make_secret_store().resolve("env:ORCHESTRATOR_TEST_SURELY_UNSET_9d1e")
+
+
+class _CountingResolver:
+    """Resolver that counts calls and can fail on demand."""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+        self.fail = False
+
+    def resolve(self, target: str) -> str:
+        self.calls.append(target)
+        if self.fail:
+            msg = "backend unavailable"
+            raise SecretResolutionError(msg)
+        return f"value-of-{target}-{len(self.calls)}"
+
+
+def test_each_reference_is_resolved_once_per_execution() -> None:
+    resolver = _CountingResolver()
+    runtime = (
+        RuntimeBuilder()
+        .with_environment({}, prefix=None)
+        .with_secret_resolver("count", resolver)
+        .build()
+    )
+    stores: list[SecretStore] = []
+
+    def automation(ctx: ExecutionContext) -> tuple[str, str, str]:
+        stores.append(ctx.secrets)
+        first = ctx.secrets.resolve("count:db").reveal()
+        again = ctx.secrets.resolve(SecretRef("count", "db")).reveal()
+        other = ctx.secrets.resolve("count:api").reveal()
+        return first, again, other
+
+    first = runtime.run(automation)
+    assert first.succeeded, first.error
+    assert first.output == ("value-of-db-1", "value-of-db-1", "value-of-api-2")
+    assert resolver.calls == ["db", "api"]
+    second = runtime.run(automation)  # a new execution starts without the previous cache
+    assert second.output == ("value-of-db-3", "value-of-db-3", "value-of-api-4")
+    assert resolver.calls == ["db", "api", "db", "api"]
+    # The shutdown stage discarded the values: the store resolves again, and keeps nothing.
+    assert stores[0].resolve("count:db").reveal() == "value-of-db-5"
+    assert stores[0].resolve("count:db").reveal() == "value-of-db-6"
+
+
+def test_failed_resolutions_are_not_kept() -> None:
+    from orchestrator_core.testing import make_secret_store
+
+    resolver = _CountingResolver()
+    store = make_secret_store({"count": resolver})
+    resolver.fail = True
+    for _ in range(2):
+        with pytest.raises(SecretResolutionError, match="backend unavailable"):
+            store.resolve("count:db")
+    resolver.fail = False
+    assert store.resolve("count:db").reveal() == "value-of-db-3"
+    assert store.resolve("count:db").reveal() == "value-of-db-3"
+    assert resolver.calls == ["db", "db", "db"]
+
+
+def test_concurrent_resolutions_return_one_value() -> None:
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from orchestrator_core.testing import make_secret_store
+
+    barrier = threading.Barrier(8)
+
+    class Slow:
+        def __init__(self) -> None:
+            self.count = 0
+            self.lock = threading.Lock()
+
+        def resolve(self, target: str) -> str:
+            with self.lock:
+                self.count += 1
+                current = self.count
+            barrier.wait(timeout=5)
+            return f"{target}-{current}"
+
+    store = make_secret_store({"slow": Slow()})
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        values = list(pool.map(lambda _: store.resolve("slow:db").reveal(), range(8)))
+    assert len(set(values)) == 1  # every caller gets the value kept first

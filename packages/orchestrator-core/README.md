@@ -45,6 +45,23 @@ print(result.output, result.duration)
 
 `Runtime.run` nunca lança exceção por falha da automação ou de um estágio: o resultado traz `status` (`succeeded`, `failed`, `cancelled`, `timed_out`), o desfecho de cada estágio e o erro original. `KeyboardInterrupt` e `SystemExit` são relançados depois do teardown. A semântica completa está na [RFC-0001](../../docs/rfc/0001-ciclo-de-vida-da-execucao.md).
 
+O teardown tem orçamento próprio (`runtime.teardown_timeout`, 60 s por padrão; `0` desliga): depois de cancelamento ou prazo, finalizers ainda conseguem esperar e repetir operações com `ctx.sleep` e `ctx.retry`. Para que `SIGTERM` e Ctrl+Break passem pelo teardown e pelo `ExecutionFinished`, veja o guia [Encerramento por sinal](../../docs/guides/encerramento-por-sinal.md).
+
+## Subetapas
+
+```python
+def conciliar(ctx: ExecutionContext) -> None:
+    with ctx.step("baixar_extrato"):
+        ...
+    with ctx.step("conciliar_lancamentos"):
+        with ctx.step("gravar"):  # aninhada: registra a subetapa que a contém
+            ...
+```
+
+Cada subetapa registra status, duração e erro mascarado em `result.steps` e no `ExecutionRecord`, publica `StepStarted` e `StepFinished`, mede `orchestrator.step.duration_seconds` e marca o campo `step` dos logs. A exceção é relançada sem alteração: a plataforma não repete nem pula subetapas, e a ordem continua sendo o código do consumidor. Limite por execução: `runtime.max_steps` (1.000 por padrão).
+
+Texto que sai do processo, como um aviso montado num finalizer, passa por `ctx.redact(texto)`; o finalizer recebe `outcome.error_info`, já mascarado.
+
 ## Superfície pública
 
 Os nomes exportados por `orchestrator_core`, `orchestrator_core.logs` e `orchestrator_core.testing` formam a API pública, listada na [RFC-0002](../../docs/rfc/0002-escopo-do-mvp-e-api-publica.md). Módulos com nome iniciado por `_` são internos.

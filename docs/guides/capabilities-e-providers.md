@@ -43,6 +43,8 @@ Regras:
 3. `verify` não adquire recursos: só confirma pré-requisitos.
 4. Configuração em `[capabilities.<nome>]`, validada em `from_config`, com `check_keys` para recusar chaves desconhecidas.
 5. Credenciais entram como referência de segredo e são resolvidas com `ctx.secrets`.
+6. Uma configuração que depende de estágios instalados pelo consumidor é recusada em `open`, antes da automação, consultando `ctx.stages` (nomes dos estágios do pipeline, em ordem; desde a 0.2.0).
+7. Texto que sai do processo (avisos, mensagens para outros sistemas) passa por `ctx.redact(texto)`; finalizers usam `outcome.error_info`, já mascarado.
 
 Registro pelo consumidor:
 
@@ -53,12 +55,15 @@ RuntimeBuilder().with_capability(Notifier("ops"), name="ops")  # instância pron
 
 ## Escrevendo um Provider
 
-Implemente o port da Capability. Para a Capability SQL, `SqlProvider` exige: `from_config`, `connect` (em autocommit), `paramstyle`, `is_driver_error`, `translate_error` e `column_type`; o restante tem padrão. Marque falhas transitórias com `retryable=True`.
+Implemente o port da Capability. Para a Capability SQL, `SqlProvider` exige: `from_config`, `connect(secrets)` (em autocommit), `paramstyle`, `is_driver_error`, `translate_error` e `column_type`; o restante tem padrão. Marque falhas transitórias com `retryable=True`.
+
+Credenciais ([RFC-0006](../rfc/0006-segredos-cofres-e-credenciais-de-providers.md), 2.1, opção A): o Provider guarda só a referência lida em `from_config` (`section.get_secret_ref("password")`) e resolve o valor em `connect(secrets)`, com o `SecretStore` da execução, que o registra para mascaramento. O valor resolvido não fica em atributo, não aparece em `describe()` nem em erro traduzido.
 
 ## Testando
 
 - Toda Capability: `orchestrator_core.testing.check_capability_conformance(MinhaCapability(...))` verifica execuções sequenciais e concorrentes, isolamento de handles e fechamento do contexto.
-- Todo Provider SQL: herde `orchestrator_sql.testing.SqlProviderContract` e implemente `make_provider()`.
+- Todo Provider SQL: herde `orchestrator_sql.testing.SqlProviderContract` e implemente `make_provider()`. Provider com credenciais sobrescreve também `secret_resolvers()`; a suíte verifica que o valor resolvido não fica guardado nem exposto.
+- Testes que chamam o Provider fora de uma execução usam `orchestrator_core.testing.make_secret_store(...)`.
 
 ## Novo pacote neste repositório
 

@@ -53,3 +53,24 @@ def test_command_line(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> Non
     assert record["runtime"] == "hello-automation"
     assert json.loads(output.read_text(encoding="utf-8"))["files"] == 2
     assert main([str(tmp_path / "absent"), "--output", str(output)]) == 1
+
+
+def test_termination_signals_cancel_the_run_and_handlers_are_restored() -> None:
+    """RFC-0005, 2.4: the entry point turns SIGTERM (and SIGBREAK on Windows) into cancellation."""
+    import signal
+
+    from hello_automation.__main__ import cancel_on_signals, restore_signals
+    from orchestrator_core import CancellationToken
+
+    before = signal.getsignal(signal.SIGTERM)
+    token = CancellationToken()
+    previous = cancel_on_signals(token)
+    try:
+        handler = signal.getsignal(signal.SIGTERM)
+        assert callable(handler)
+        handler(signal.SIGTERM, None)
+        assert token.is_cancelled
+        assert token.reason == "SIGTERM"
+    finally:
+        restore_signals(previous)
+    assert signal.getsignal(signal.SIGTERM) == before

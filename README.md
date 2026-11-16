@@ -19,6 +19,11 @@ Plataforma modular de automação em Python. Padroniza o ciclo de vida das autom
 | [`orchestrator-core`](packages/orchestrator-core) | Runtime, Execution Pipeline de oito estágios, Execution Context, contratos de Capability e Provider | Só a biblioteca padrão |
 | [`orchestrator-sql`](packages/orchestrator-sql) | Capability SQL: consultas parametrizadas, transações, identificadores validados | `orchestrator-core` |
 | [`orchestrator-sqlite`](packages/orchestrator-sqlite) | Provider SQLite para a Capability SQL | `orchestrator-sql` |
+| [`orchestrator-notifications`](packages/orchestrator-notifications) | Capability de notificações: canais, avisos de ciclo de vida, política de falha | `orchestrator-core` |
+| [`orchestrator-notifications-smtp`](packages/orchestrator-notifications-smtp) | Provider de e-mail (SMTP) para as notificações, só com a biblioteca padrão | `orchestrator-notifications` |
+| [`orchestrator-notifications-teams`](packages/orchestrator-notifications-teams) | Provider de Microsoft Teams (webhook de Workflows) para as notificações | `orchestrator-notifications` |
+| [`orchestrator-records-file`](packages/orchestrator-records-file) | Registros de execução em JSON Lines e logs técnicos em TXT, com retenção e vários processos por pasta | `orchestrator-core` |
+| [`orchestrator-calendar`](packages/orchestrator-calendar) | Capability de calendários de dias úteis, com feriados mantidos manualmente em arquivos | `orchestrator-core` |
 
 Os pacotes incubam neste repositório e cada um pode ser separado em repositório próprio ([ADR-0001](docs/adr/0001-topologia-de-repositorios.md)).
 
@@ -45,7 +50,7 @@ Projetos completos: [`examples/hello-automation`](examples/hello-automation) e [
 ```powershell
 py -3.13 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements\dev.txt
-.venv\Scripts\python -m pip install -e packages\orchestrator-core -e packages\orchestrator-sql -e packages\orchestrator-sqlite -e examples\hello-automation -e examples\sales-report
+.venv\Scripts\python -m pip install -e packages\orchestrator-core -e packages\orchestrator-sql -e packages\orchestrator-sqlite -e packages\orchestrator-notifications -e packages\orchestrator-notifications-smtp -e packages\orchestrator-notifications-teams -e packages\orchestrator-records-file -e packages\orchestrator-calendar -e examples\hello-automation -e examples\sales-report -e examples\batch-check
 
 ruff check .
 ruff format --check .

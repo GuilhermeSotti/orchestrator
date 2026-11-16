@@ -58,6 +58,7 @@ Estágios customizados podem ser inseridos antes ou depois de qualquer estágio 
 - O prazo vem de `run(..., timeout=...)` ou de `runtime.timeout`, medido em tempo monotônico a partir do início.
 - A automação coopera com `ctx.check()` e `ctx.sleep()`; `ctx.sleep` acorda ao cancelar e não passa do prazo. `ctx.retry` respeita os dois.
 - Uma automação que termina depois do prazo sem verificar continua `succeeded`, e o Runtime registra um aviso. Interrupção forçada fica fora do Core (ADR-0006).
+- Desde a 0.2.0 (RFC-0005, 2.2; aceite pendente): nos estágios de teardown, `ctx.check()`, `ctx.sleep()`, `ctx.retry()` e `ctx.remaining()` seguem só o orçamento `runtime.teardown_timeout` (60 s por padrão; `0` desliga), contado a partir do primeiro estágio de teardown. A interrupção que encerrou a execução não é relançada e `ctx.sleep` não acorda pelo token. Ver o [guia de configuração](../guides/configuracao.md).
 
 ## 6. Recursos e finalizers
 
@@ -82,11 +83,13 @@ Um contexto por execução, nunca compartilhado nem global. Conteúdo:
 | `StageFinished` | Depois de cada estágio que roda, com status, duração e erro mascarado |
 | `ExecutionFinished` | Depois de todo o pipeline, com o status final |
 
+Desde a 0.2.0 (RFC-0005, 2.3; aceite pendente), `StepStarted` e `StepFinished` são publicados por `ctx.step(nome)`, dentro do estágio que estiver rodando.
+
 Garantias: entrega síncrona, na thread da execução, na ordem de assinatura; cada assinante recebe os eventos que são instâncias do tipo assinado; no máximo uma entrega; sem persistência; falha de assinante registrada e contada em `orchestrator.event_handler.errors`, sem interromper nada. Consumidores podem publicar eventos próprios, subclasses de `Event`, com `ctx.publish`.
 
 ## 9. Registro da execução (Persist Logs)
 
-O `ExecutionRecord` é produzido no estágio `persist_logs`, com status, desfecho de cada estágio executado até então e erros mascarados, e entregue aos `ExecutionRecordSink` registrados. Falhas em `shutdown` (ou em estágios customizados posteriores a `persist_logs`) aparecem no resultado e nos logs, mas não no registro já entregue. O Core não persiste dados de negócio; armazenar histórico em banco é papel de uma Capability futura.
+O `ExecutionRecord` é produzido no estágio `persist_logs`, com status, desfecho de cada estágio executado até então, subetapas encerradas até então (desde a 0.2.0) e erros mascarados, e entregue aos `ExecutionRecordSink` registrados. Desde a 0.2.0 (RFC-0009, resposta 6; aceite pendente), um destino que lança exceção não altera o status nem o resultado: a falha vai para o log, como aviso, e para a métrica `orchestrator.record_sink.errors`; na 0.1.0, virava erro de teardown. Falhas em `shutdown` (ou em estágios customizados posteriores a `persist_logs`) aparecem no resultado e nos logs, mas não no registro já entregue. O Core não persiste dados de negócio; armazenar histórico em banco é papel de uma Capability futura.
 
 ## 10. Fora do escopo
 

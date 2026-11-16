@@ -9,6 +9,9 @@ Orchestrator: plataforma modular de automação em Python. O Core fornece infrae
 - `packages/orchestrator-core`: Core, somente biblioteca padrão (ADR-0005). API pública fixada pela RFC-0002 e por `tests/test_public_api.py`.
 - `packages/orchestrator-sql`: Capability SQL; depende só do Core.
 - `packages/orchestrator-sqlite`: Provider SQLite; depende da Capability e do Core.
+- `packages/orchestrator-notifications`: Capability de notificações; `orchestrator-notifications-smtp` e `orchestrator-notifications-teams`: Providers de canal, só com a biblioteca padrão.
+- `packages/orchestrator-records-file`: destinos em arquivo (registros de execução e logs técnicos); depende só do Core.
+- `packages/orchestrator-calendar`: Capability de calendários, com a fonte em arquivo embutida; depende só do Core.
 - `examples/`: projetos consumidores de exemplo.
 - `tools/`: verificação de links, fronteiras entre pacotes e build reproduzível.
 - Os pacotes incubam aqui durante a série 0.x; a topologia-alvo é multirrepositório (ADR-0001). Não junte nem separe pacotes sem ADR.
@@ -17,7 +20,7 @@ Orchestrator: plataforma modular de automação em Python. O Core fornece infrae
 
 ```text
 pip install -r requirements/dev.txt
-pip install -e packages/orchestrator-core -e packages/orchestrator-sql -e packages/orchestrator-sqlite -e examples/hello-automation -e examples/sales-report
+pip install -e packages/orchestrator-core -e packages/orchestrator-sql -e packages/orchestrator-sqlite -e packages/orchestrator-notifications -e packages/orchestrator-notifications-smtp -e packages/orchestrator-notifications-teams -e packages/orchestrator-records-file -e packages/orchestrator-calendar -e examples/hello-automation -e examples/sales-report -e examples/batch-check
 ruff check . && ruff format --check . && mypy && pytest
 python tools/build_packages.py --check
 python -m tools.e2e   # instala os wheels num ambiente limpo e roda os exemplos

@@ -36,6 +36,20 @@ Somente estes nomes são públicos; um teste falha se a lista mudar sem atualiza
 
 Todo nome público tem docstring; a maioria tem exemplo executado como doctest.
 
+### 2.1 Acréscimos da 0.2.0
+
+Implementados em 2026-11-15 na branch local `feature/core-0.2`, sem release. Origem: [RFC-0005](0005-core-0-2-subetapas-mascaramento-teardown-e-sinais.md), respostas 6 da [RFC-0007](0007-capability-de-notificacoes.md) e da [RFC-0009](0009-destinos-de-registros-e-logs.md), e [RFC-0006](0006-segredos-cofres-e-credenciais-de-providers.md), 2.1. A implementação foi aprovada pelo responsável (DE-1), e as RFCs de origem foram aceitas em 2026-11-15 ([DECISIONS](../DECISIONS.md), seção 5), o que resolve a pendência 7; o merge ainda depende da autorização de push e PR (pendência 9).
+
+- Nomes novos em `orchestrator_core`: `StepStarted`, `StepFinished`, `StepOutcome`, `StepRecord`.
+- Nome novo em `orchestrator_core.testing`: `make_secret_store`; `check_capability_conformance` ganha `secret_resolvers=`.
+- Membros novos de classes públicas: `ExecutionContext.redact`, `ExecutionContext.step`, `ExecutionContext.stages`; `ExecutionOutcome.error_info`; `ExecutionResult.steps`; `ExecutionRecord.steps` e `ExecutionRecord.steps_truncated` (também em `to_dict()`); `RuntimeSettings.teardown_timeout` e `RuntimeSettings.max_steps`, com as chaves de `[runtime]`.
+- Campo `step` nos registros de log (`ExecutionContextFilter`, `JsonFormatter`); `TEXT_FORMAT` não muda.
+- Métricas novas: `orchestrator.step.duration_seconds` e `orchestrator.record_sink.errors`.
+- Comportamento alterado: métodos de tempo do contexto durante o teardown; falha de `ExecutionRecordSink` não altera mais o status; `SecretStore` resolve cada referência uma vez por execução e descarta os valores no `shutdown` ([RFC-0006](0006-segredos-cofres-e-credenciais-de-providers.md), resposta 3).
+- `CORE_API_VERSION = "0.2"`.
+
+O teste `tests/test_public_api.py` fixa a lista completa, incluindo esses membros.
+
 ## 3. Critérios de aceite e situação
 
 | # | Critério | Situação em 2026-11-12 |

@@ -7,7 +7,8 @@ Demonstra:
 - registro da Capability por classe, com os Providers permitidos (`providers={"sqlite": SqliteProvider}`);
 - escolha do banco pela configuração (`[capabilities.sql]` ou `ORCHESTRATOR_CAPABILITIES__SQL__*`), sem mudar código;
 - transação explícita, parâmetros `:nome` e identificadores validados;
-- regras de negócio (colunas, filtros, formato do relatório) no projeto consumidor.
+- regras de negócio (colunas, filtros, formato do relatório) no projeto consumidor;
+- `SIGTERM` e Ctrl+Break ligados ao token de cancelamento no ponto de entrada ([guia](../../docs/guides/encerramento-por-sinal.md)).
 
 ## Executar
 

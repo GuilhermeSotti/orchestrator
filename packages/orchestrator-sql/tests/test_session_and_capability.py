@@ -13,6 +13,7 @@ from orchestrator_core import (
     RuntimeBuilder,
     StageStatus,
 )
+from orchestrator_core.testing import make_secret_store
 from orchestrator_sql import (
     Row,
     SqlCapability,
@@ -109,7 +110,7 @@ def test_rollback_failure_does_not_mask_the_original_error(
     fakes: SimpleNamespace,
 ) -> None:
     provider = fakes.StdlibSqlite()
-    session = SqlSession(provider, provider.connect())
+    session = SqlSession(provider, provider.connect(make_secret_store()))
     with pytest.raises(RuntimeError, match="original"), session.transaction():
         session.close()  # the rollback will fail: the session is closed
         raise RuntimeError("original")
@@ -118,7 +119,7 @@ def test_rollback_failure_does_not_mask_the_original_error(
 
 def test_closed_session_and_quoting(fakes: SimpleNamespace) -> None:
     provider = fakes.StdlibSqlite()
-    session = SqlSession(provider, provider.connect())
+    session = SqlSession(provider, provider.connect(make_secret_store()))
     assert session.quote("sales.orders") == '"sales"."orders"'
     assert session.quote("orders") == '"orders"'
     assert session.dialect == "sqlite"
@@ -140,7 +141,7 @@ def test_helpers_produce_the_driver_paramstyle(
     style: str, expected: tuple[str, object], fakes: SimpleNamespace
 ) -> None:
     provider = fakes.recording_provider(style)()
-    connection = provider.connect()
+    connection = provider.connect(make_secret_store())
     session = SqlSession(provider, connection)  # type: ignore[arg-type]
     session.select("people", where={"name": "Ana"})
     assert connection.log == [expected]  # type: ignore[attr-defined]
@@ -195,7 +196,7 @@ def test_failed_connection_fails_provisioning(
     caplog: pytest.LogCaptureFixture, fakes: SimpleNamespace
 ) -> None:
     class Unreachable(fakes.StdlibSqlite):  # type: ignore[name-defined,misc]
-        def connect(self) -> object:  # type: ignore[override]
+        def connect(self, secrets: object) -> object:  # type: ignore[override]
             raise SqlError("connection refused", retryable=True)
 
     runtime = (

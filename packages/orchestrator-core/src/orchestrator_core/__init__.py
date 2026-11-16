@@ -46,6 +46,8 @@ from orchestrator_core._events import (
     ExecutionStarted,
     StageFinished,
     StageStarted,
+    StepFinished,
+    StepStarted,
 )
 from orchestrator_core._metrics import MetricsRecorder
 from orchestrator_core._pipeline import FunctionStage, Stage
@@ -61,6 +63,8 @@ from orchestrator_core._results import (
     StageOutcome,
     StageRecord,
     StageStatus,
+    StepOutcome,
+    StepRecord,
 )
 from orchestrator_core._retry import RetryAttempt, RetryPolicy, is_retryable, retry
 from orchestrator_core._runtime import Runtime, RuntimeBuilder
@@ -124,6 +128,10 @@ __all__ = [
     "StageRecord",
     "StageStarted",
     "StageStatus",
+    "StepFinished",
+    "StepOutcome",
+    "StepRecord",
+    "StepStarted",
     "__version__",
     "is_retryable",
     "retry",

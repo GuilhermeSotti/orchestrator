@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import ClassVar, Final, Self
 from urllib.parse import quote
 
-from orchestrator_core import CapabilityUnavailableError, ConfigSection
+from orchestrator_core import CapabilityUnavailableError, ConfigSection, SecretStore
 from orchestrator_sql import (
     SqlConnectionError,
     SqlError,
@@ -103,8 +103,12 @@ class SqliteProvider(SqlProvider):
             msg = f"folder of the SQLite database does not exist: {path.parent}"
             raise CapabilityUnavailableError(msg)
 
-    def connect(self) -> sqlite3.Connection:
-        """Open a connection in autocommit mode."""
+    def connect(self, secrets: SecretStore) -> sqlite3.Connection:
+        """Open a connection in autocommit mode.
+
+        SQLite has no credentials, so ``secrets`` is not used.
+        """
+        del secrets
         try:
             if self._read_only:
                 uri = f"file:{quote(Path(self._database).resolve().as_posix())}?mode=ro"

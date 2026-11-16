@@ -74,6 +74,46 @@ class ExecutionFinished(Event):
     error: ErrorInfo | None = None
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class StepStarted(Event):
+    """Published when a step starts (see :meth:`ExecutionContext.step`).
+
+    Attributes:
+        step: Step name.
+        index: Position of the step in start order within the execution (1-based).
+        parent: Index of the enclosing step, or ``None`` at the top level.
+        stage: Pipeline stage that is running.
+    """
+
+    step: str
+    index: int
+    parent: int | None
+    stage: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class StepFinished(Event):
+    """Published when a step finishes, successfully or not.
+
+    Attributes:
+        step: Step name.
+        index: Position of the step in start order within the execution (1-based).
+        parent: Index of the enclosing step, or ``None`` at the top level.
+        stage: Pipeline stage that was running when the step started.
+        status: Step status.
+        duration: Seconds spent in the step.
+        error: Masked description of the error that left the step, if any.
+    """
+
+    step: str
+    index: int
+    parent: int | None
+    stage: str
+    status: ExecutionStatus
+    duration: float
+    error: ErrorInfo | None = None
+
+
 type EventHandler[E: Event] = Callable[[E], object]
 """Callable that receives events of type ``E``."""
 

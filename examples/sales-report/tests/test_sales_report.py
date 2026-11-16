@@ -130,3 +130,24 @@ def test_command_line(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> Non
     assert printed["record"]["status"] == "succeeded"
     assert printed["output"]["orders"] == 6
     assert main(["missing.csv", "--config", str(CONFIG)]) == 1
+
+
+def test_termination_signals_cancel_the_run_and_handlers_are_restored() -> None:
+    """RFC-0005, 2.4: the entry point turns SIGTERM (and SIGBREAK on Windows) into cancellation."""
+    import signal
+
+    from orchestrator_core import CancellationToken
+    from sales_report.__main__ import cancel_on_signals, restore_signals
+
+    before = signal.getsignal(signal.SIGTERM)
+    token = CancellationToken()
+    previous = cancel_on_signals(token)
+    try:
+        handler = signal.getsignal(signal.SIGTERM)
+        assert callable(handler)
+        handler(signal.SIGTERM, None)
+        assert token.is_cancelled
+        assert token.reason == "SIGTERM"
+    finally:
+        restore_signals(previous)
+    assert signal.getsignal(signal.SIGTERM) == before

@@ -23,3 +23,4 @@ Decisões arquiteturais do Orchestrator. Modelo: [0000-template.md](0000-templat
 | [0017](0017-titularidade-licenca-idioma-visibilidade.md) | Titularidade, licença, idioma e visibilidade | Aceito |
 | [0018](0018-convencoes-de-commit-branch-e-versao.md) | Convenções de commit, branch, merge e versionamento por pacote | Aceito |
 | [0019](0019-convencoes-de-fila-fora-da-plataforma.md) | Convenções de fila e de schema fora da plataforma | Aceito |
+| [0020](0020-provider-sobre-outra-capability.md) | Provider que usa outra Capability como infraestrutura | Aceito |

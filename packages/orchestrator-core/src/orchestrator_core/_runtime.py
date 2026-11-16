@@ -52,6 +52,7 @@ from orchestrator_core._results import (
     StageOutcome,
     StageRecord,
     StageStatus,
+    StepRecord,
     stage_status_for_error,
     status_for_error,
 )
@@ -200,6 +201,7 @@ class Runtime:
         )
         raw_parameters = MappingProxyType(dict(parameters or {}))
         started = self._clock.monotonic()
+        settings = self._configuration.runtime
         state = ExecutionState(
             automation=automation,
             raw_parameters=raw_parameters,
@@ -209,6 +211,9 @@ class Runtime:
             redactor=self._redactor,
             resources=ResourceScope(),
             parameters=raw_parameters,
+            stages=self._pipeline.names,
+            teardown_timeout=settings.teardown_timeout,
+            max_steps=settings.max_steps,
         )
         ctx = ExecutionContext(
             execution_id=execution_id or uuid.uuid4().hex,
@@ -240,10 +245,18 @@ class Runtime:
 
     def _execute(self, ctx: ExecutionContext, state: ExecutionState, started: float) -> _Run:
         run = _Run()
-        state.record_builder = lambda: self._record(ctx, run, started)
+        state.record_builder = lambda: self._record(ctx, state, run, started)
         for stage in self._pipeline.stages:
             if stage.phase is Phase.TEARDOWN:
-                state.outcome = ExecutionOutcome(status=run.status, error=run.error)
+                state.begin_teardown(self._clock.monotonic())
+                current = run.error
+                state.outcome = ExecutionOutcome(
+                    status=run.status,
+                    error=current,
+                    error_info=None
+                    if current is None
+                    else ErrorInfo.from_exception(current, self._redactor),
+                )
                 error = self._run_stage(ctx, stage, run)
                 if error is not None:
                     run.teardown_errors.append(error)
@@ -324,7 +337,9 @@ class Runtime:
 
     # Results ----------------------------------------------------------------
 
-    def _record(self, ctx: ExecutionContext, run: _Run, started: float) -> ExecutionRecord:
+    def _record(
+        self, ctx: ExecutionContext, state: ExecutionState, run: _Run, started: float
+    ) -> ExecutionRecord:
         redact = self._redactor
         return ExecutionRecord(
             execution_id=ctx.execution_id,
@@ -348,12 +363,14 @@ class Runtime:
             ),
             error=None if run.error is None else ErrorInfo.from_exception(run.error, redact),
             teardown_errors=tuple(ErrorInfo.from_exception(e, redact) for e in run.teardown_errors),
+            steps=tuple(StepRecord.from_outcome(step, redact) for step in state.recorded_steps()),
+            steps_truncated=state.steps_truncated,
         )
 
     def _result(
         self, ctx: ExecutionContext, state: ExecutionState, run: _Run, started: float
     ) -> ExecutionResult:
-        record = self._record(ctx, run, started)
+        record = self._record(ctx, state, run, started)
         return ExecutionResult(
             execution_id=ctx.execution_id,
             automation=ctx.automation,
@@ -367,6 +384,7 @@ class Runtime:
             output=state.output,
             error=run.error,
             teardown_errors=tuple(run.teardown_errors),
+            steps=state.recorded_steps(),
         )
 
     def _report(self, result: ExecutionResult) -> None:

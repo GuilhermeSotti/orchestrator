@@ -70,13 +70,15 @@ A Public API é a superfície exportada pelo Core (`orchestrator_core`, `orchest
 | Teardown | `persist_logs` | Registro da execução para os destinos e descarga dos logs |
 | Teardown | `shutdown` | Fecha o contexto |
 
-Uma falha na preparação impede a execução; o teardown sempre roda; erros de teardown não mascaram o erro primário. Cancelamento e prazo são cooperativos. Estágios novos são inseridos sem alterar os existentes. Semântica completa: [RFC-0001](docs/rfc/0001-ciclo-de-vida-da-execucao.md).
+Uma falha na preparação impede a execução; o teardown sempre roda; erros de teardown não mascaram o erro primário. Cancelamento e prazo são cooperativos; desde a 0.2.0, o teardown tem orçamento próprio (`runtime.teardown_timeout`). Estágios novos são inseridos sem alterar os existentes. Semântica completa: [RFC-0001](docs/rfc/0001-ciclo-de-vida-da-execucao.md).
+
+Dentro da automação, `ctx.step(nome)` rastreia subetapas (status, duração, erro mascarado, aninhamento) no resultado, no registro, nos eventos e nos logs. Rastrear não é compor: a ordem das partes continua sendo código do consumidor, e a plataforma não repete, pula nem retoma subetapas ([RFC-0005](docs/rfc/0005-core-0-2-subetapas-mascaramento-teardown-e-sinais.md); [ADR-0016](docs/adr/0016-escopo-futuro.md)).
 
 ## 5. Capabilities e Providers
 
 Uma Capability é registrada uma vez no Runtime e, a cada execução, abre um handle próprio daquela execução, liberado no `finalize`. Ela define o contrato usado pela automação e o port dos Providers. Um Provider implementa o port para uma tecnologia e traduz exceções de infraestrutura para erros da Capability.
 
-Previstas na arquitetura (nenhuma implementada além de SQL): Browser, Excel, HTTP, Docker, Filesystem, Queue, Email, Secrets, PDF. Providers previstos: PostgreSQL, SQL Server, MySQL, Azure, AWS, filesystem local, OpenTelemetry. Cada uma começa por RFC. Guia: [Capabilities e Providers](docs/guides/capabilities-e-providers.md).
+Implementadas: SQL (`orchestrator-sql`, Provider `orchestrator-sqlite`) e notificações (`orchestrator-notifications`, Providers `orchestrator-notifications-smtp` e `orchestrator-notifications-teams`); os destinos em arquivo de registros e logs são o pacote `orchestrator-records-file`; calendários (`orchestrator-calendar`, com fonte em arquivo). Aceitas e ainda não implementadas (RFC-0004, seção 3): fila, registros e logs em SQL, mapeamentos, fontes SQL e Excel de calendários, cofre de segredos e autenticação por sistema, esta condicional a um caso real. Um Provider pode usar outra Capability como infraestrutura, com as regras da [ADR-0020](docs/adr/0020-provider-sobre-outra-capability.md). Previstas sem RFC: Browser, Excel, HTTP, Docker, Filesystem, PDF; Providers PostgreSQL, SQL Server, MySQL, Azure, AWS, OpenTelemetry. Cada uma começa por RFC. Guia: [Capabilities e Providers](docs/guides/capabilities-e-providers.md).
 
 ## 6. Pacotes e repositórios
 

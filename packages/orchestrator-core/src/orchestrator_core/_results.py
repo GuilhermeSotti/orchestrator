@@ -16,6 +16,7 @@ from orchestrator_core._errors import (
 from orchestrator_core._redaction import Redactor
 
 _MAX_MESSAGE = 2000
+_UNPRINTABLE = "<exception str() failed>"
 
 
 class Phase(enum.StrEnum):
@@ -71,7 +72,9 @@ class ErrorInfo:
 
     Attributes:
         type: Qualified name of the exception class.
-        message: Exception message, masked and truncated to 2000 characters.
+        message: Exception message, masked and truncated to 2000 characters;
+            ``<exception str() failed>`` when the exception cannot be converted
+            to text.
     """
 
     type: str
@@ -83,7 +86,11 @@ class ErrorInfo:
         kind = type(error)
         module = kind.__module__
         name = kind.__qualname__ if module == builtins.__name__ else f"{module}.{kind.__qualname__}"
-        message = redactor.redact(str(error))
+        try:
+            text = str(error)
+        except Exception:  # noqa: BLE001 - a broken __str__ must never break the pipeline
+            text = _UNPRINTABLE
+        message = redactor.redact(text)
         if len(message) > _MAX_MESSAGE:
             message = message[:_MAX_MESSAGE] + "…"
         return cls(type=name, message=message)
@@ -134,16 +141,96 @@ class StageRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class StepOutcome:
+    """What happened to one step of an execution (see :meth:`ExecutionContext.step`).
+
+    Attributes:
+        index: Position of the step in start order within the execution (1-based).
+            Names may repeat; indexes do not.
+        name: Step name.
+        parent: Index of the step that contains this one, or ``None`` at the top level.
+        stage: Pipeline stage that was running when the step started.
+        status: Step status, mapped from its error like the execution status.
+        started_at: Start time (UTC).
+        duration: Seconds spent in the step.
+        error: Exception that left the step, if any (not part of ``repr``).
+    """
+
+    index: int
+    name: str
+    parent: int | None
+    stage: str
+    status: ExecutionStatus
+    started_at: datetime
+    duration: float
+    error: BaseException | None = field(default=None, repr=False, compare=False)
+
+
+@dataclass(frozen=True, slots=True)
+class StepRecord:
+    """Serializable, masked counterpart of :class:`StepOutcome`."""
+
+    index: int
+    name: str
+    parent: int | None
+    stage: str
+    status: ExecutionStatus
+    started_at: datetime
+    duration: float
+    error: ErrorInfo | None = None
+
+    @classmethod
+    def from_outcome(cls, outcome: StepOutcome, redactor: Redactor) -> StepRecord:
+        """Describe ``outcome`` without exposing registered secrets."""
+        return cls(
+            index=outcome.index,
+            name=outcome.name,
+            parent=outcome.parent,
+            stage=outcome.stage,
+            status=outcome.status,
+            started_at=outcome.started_at,
+            duration=outcome.duration,
+            error=None
+            if outcome.error is None
+            else ErrorInfo.from_exception(outcome.error, redactor),
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        """Return a JSON-compatible dictionary."""
+        return {
+            "index": self.index,
+            "name": self.name,
+            "parent": self.parent,
+            "stage": self.stage,
+            "status": self.status.value,
+            "started_at": self.started_at.isoformat(),
+            "duration": self.duration,
+            "error": None if self.error is None else self.error.to_dict(),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class ExecutionOutcome:
     """Provisional outcome of an execution, visible to teardown stages and finalizers.
 
+    Example::
+
+        def notify(outcome: ExecutionOutcome) -> None:
+            if outcome.error_info is not None:  # already masked
+                send(f"{outcome.error_info.type}: {outcome.error_info.message}")
+
     Attributes:
         status: Status the execution has so far.
-        error: Primary error (or first teardown error), if any.
+        error: Primary error (or first teardown error), if any. The raw
+            exception may carry secret values: never send ``str(error)`` out
+            of the process; use :attr:`error_info` or
+            :meth:`ExecutionContext.redact`.
+        error_info: Masked description of :attr:`error`, if any.
     """
 
     status: ExecutionStatus
     error: BaseException | None = field(default=None, repr=False)
+    error_info: ErrorInfo | None = None
 
     @property
     def succeeded(self) -> bool:
@@ -166,6 +253,9 @@ class ExecutionRecord:
         stages: Stage records, in execution order.
         error: Primary error, if any.
         teardown_errors: Errors raised by teardown stages.
+        steps: Records of the steps finished so far, in start order.
+        steps_truncated: Whether steps were left out because the execution
+            started more than ``runtime.max_steps`` steps.
     """
 
     execution_id: str
@@ -178,6 +268,8 @@ class ExecutionRecord:
     stages: tuple[StageRecord, ...]
     error: ErrorInfo | None = None
     teardown_errors: tuple[ErrorInfo, ...] = ()
+    steps: tuple[StepRecord, ...] = ()
+    steps_truncated: bool = False
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-compatible dictionary."""
@@ -192,6 +284,8 @@ class ExecutionRecord:
             "stages": [stage.to_dict() for stage in self.stages],
             "error": None if self.error is None else self.error.to_dict(),
             "teardown_errors": [error.to_dict() for error in self.teardown_errors],
+            "steps": [step.to_dict() for step in self.steps],
+            "steps_truncated": self.steps_truncated,
         }
 
 
@@ -214,6 +308,8 @@ class ExecutionResult:
         output: Value returned by the automation (``None`` if it did not finish).
         error: Primary error, or the first teardown error if there is no primary error.
         teardown_errors: Every error raised by teardown stages.
+        steps: Outcome of every recorded step, in start order (at most
+            ``runtime.max_steps``; see :attr:`ExecutionRecord.steps_truncated`).
         record: Masked, serializable summary.
     """
 
@@ -229,6 +325,7 @@ class ExecutionResult:
     output: object = None
     error: BaseException | None = None
     teardown_errors: tuple[BaseException, ...] = ()
+    steps: tuple[StepOutcome, ...] = ()
 
     @property
     def succeeded(self) -> bool:
@@ -268,7 +365,10 @@ class ExecutionRecordSink(Protocol):
     """Port that receives the record of every execution during ``persist_logs``.
 
     Implementations (files, databases, observability backends) live outside the
-    Core. A sink that raises is reported as a teardown error of the execution.
+    Core. An exception raised by a sink never changes the status, the result or
+    the flow of the execution (RFC-0009): it is logged as a warning and counted
+    in the ``orchestrator.record_sink.errors`` metric. ``KeyboardInterrupt`` and
+    other non-``Exception`` errors still interrupt, as anywhere in the pipeline.
     """
 
     def write(self, record: ExecutionRecord) -> None:

@@ -15,6 +15,7 @@ from orchestrator_core import (
     RetryPolicy,
     RuntimeBuilder,
 )
+from orchestrator_core.testing import make_secret_store
 from orchestrator_sql import (
     SqlCapability,
     SqlConnectionError,
@@ -57,12 +58,12 @@ def test_verify(tmp_path: Path) -> None:
 
 def test_read_only_databases_reject_writes(tmp_path: Path) -> None:
     path = tmp_path / "ro.db"
-    writer = SqlSession(SqliteProvider(path), SqliteProvider(path).connect())
+    writer = SqlSession(SqliteProvider(path), SqliteProvider(path).connect(make_secret_store()))
     writer.execute("CREATE TABLE t (x INTEGER)")
     writer.insert("t", {"x": 1})
     writer.close()
     reader_provider = SqliteProvider(path, read_only=True)
-    reader = SqlSession(reader_provider, reader_provider.connect())
+    reader = SqlSession(reader_provider, reader_provider.connect(make_secret_store()))
     assert reader.scalar("SELECT x FROM t") == 1
     with pytest.raises(SqlOperationalError, match="readonly"):
         reader.insert("t", {"x": 2})
@@ -71,7 +72,7 @@ def test_read_only_databases_reject_writes(tmp_path: Path) -> None:
 
 def test_connection_failures_are_translated(tmp_path: Path) -> None:
     with pytest.raises(SqlConnectionError, match="cannot open SQLite database"):
-        SqliteProvider(tmp_path).connect()  # a folder is not a database
+        SqliteProvider(tmp_path).connect(make_secret_store())  # a folder is not a database
 
 
 @pytest.mark.parametrize(
@@ -121,7 +122,7 @@ def test_value_adaptation_and_types() -> None:
 
 def test_foreign_keys_are_enforced_by_default(tmp_path: Path) -> None:
     provider = SqliteProvider(tmp_path / "fk.db")
-    session = SqlSession(provider, provider.connect())
+    session = SqlSession(provider, provider.connect(make_secret_store()))
     session.execute("CREATE TABLE parent (id INTEGER PRIMARY KEY)")
     session.execute("CREATE TABLE child (id INTEGER, parent_id INTEGER REFERENCES parent(id))")
     with pytest.raises(SqlIntegrityError, match="FOREIGN KEY"):
@@ -132,7 +133,7 @@ def test_foreign_keys_are_enforced_by_default(tmp_path: Path) -> None:
 def test_locked_database_is_retried_through_the_context(tmp_path: Path) -> None:
     """A lock held by another connection is transient: ctx.retry succeeds once it is released."""
     path = tmp_path / "locked.db"
-    setup = SqlSession(SqliteProvider(path), SqliteProvider(path).connect())
+    setup = SqlSession(SqliteProvider(path), SqliteProvider(path).connect(make_secret_store()))
     setup.execute("CREATE TABLE t (x INTEGER)")
     setup.close()
     blocker = sqlite3.connect(path, autocommit=True)

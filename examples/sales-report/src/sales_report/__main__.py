@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import signal
 from collections.abc import Sequence
 
-from orchestrator_core import Runtime, RuntimeBuilder
+from orchestrator_core import CancellationToken, Runtime, RuntimeBuilder
 from orchestrator_core.logs import configure_logging
 from orchestrator_sql import SqlCapability
 from orchestrator_sqlite import SqliteProvider
@@ -14,6 +15,26 @@ from sales_report.automation import Parameters, build_sales_report
 
 PROVIDERS = {"sqlite": SqliteProvider}
 """SQL Providers this project allows the configuration to choose from."""
+
+
+def cancel_on_signals(token: CancellationToken) -> dict[int, object]:
+    """Turn termination requests into cancellation, so that teardown runs (RFC-0005, 2.4).
+
+    The Core never installs signal handlers: the process belongs to the
+    application. Returns the previous handlers, to be restored after the run.
+    """
+    previous: dict[int, object] = {}
+    for name in ("SIGTERM", "SIGBREAK"):  # SIGBREAK: Ctrl+Break on Windows
+        number = getattr(signal, name, None)
+        if number is not None:
+            previous[number] = signal.signal(number, lambda *_, n=name: token.cancel(n))
+    return previous
+
+
+def restore_signals(previous: dict[int, object]) -> None:
+    """Reinstall the handlers returned by :func:`cancel_on_signals`."""
+    for number, handler in previous.items():
+        signal.signal(number, handler)  # type: ignore[arg-type]
 
 
 def build_runtime(config: str | None) -> Runtime:
@@ -35,16 +56,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     configure_logging("INFO", json_output=args.json_logs)
-    result = build_runtime(args.config).run(
-        build_sales_report,
-        name="sales-report",
-        parameters={
-            "orders_file": args.orders_file,
-            "output_file": args.output,
-            "minimum_amount": args.minimum,
-        },
-        parameters_validator=Parameters.validate,
-    )
+    runtime = build_runtime(args.config)
+    token = CancellationToken()
+    previous = cancel_on_signals(token)
+    try:
+        result = runtime.run(
+            build_sales_report,
+            name="sales-report",
+            parameters={
+                "orders_file": args.orders_file,
+                "output_file": args.output,
+                "minimum_amount": args.minimum,
+            },
+            parameters_validator=Parameters.validate,
+            cancellation=token,
+        )
+    finally:
+        restore_signals(previous)
     print(json.dumps({"record": result.record.to_dict(), "output": result.output}, indent=2))
     return 0 if result.succeeded else 1
 

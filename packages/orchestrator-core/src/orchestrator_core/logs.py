@@ -38,15 +38,16 @@ TEXT_FORMAT: Final = (
 )
 """Format used by :func:`configure_logging` for text output."""
 
-_FIELDS: Final = ("execution_id", "automation", "stage")
+_FIELDS: Final = ("execution_id", "automation", "stage", "step")
 _MARKER: Final = "_orchestrator_handler"
 
 
 class ExecutionContextFilter(logging.Filter):
-    """Adds ``execution_id``, ``automation`` and ``stage`` to every record.
+    """Adds ``execution_id``, ``automation``, ``stage`` and ``step`` to every record.
 
     Values come from the execution running in the current thread or task, and
-    are ``"-"`` outside executions. Attributes already set are kept.
+    are ``"-"`` outside executions (and ``step`` outside steps). Attributes
+    already set are kept.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -96,7 +97,8 @@ class JsonFormatter(logging.Formatter):
     """Formats records as one JSON object per line.
 
     Keys: ``timestamp`` (UTC, ISO 8601), ``level``, ``logger``, ``message``,
-    ``execution_id``, ``automation``, ``stage`` and, when present, ``exception``.
+    ``execution_id``, ``automation``, ``stage``, ``step`` and, when present,
+    ``exception``.
     """
 
     def format(self, record: logging.LogRecord) -> str:

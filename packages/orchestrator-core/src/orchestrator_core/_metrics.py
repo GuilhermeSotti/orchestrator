@@ -15,6 +15,12 @@ EXECUTION_DURATION: Final = "orchestrator.execution.duration_seconds"
 STAGE_DURATION: Final = "orchestrator.stage.duration_seconds"
 """Duration of stages. Tags: ``runtime``, ``stage``, ``status``."""
 
+STEP_DURATION: Final = "orchestrator.step.duration_seconds"
+"""Duration of steps. Tags: ``runtime``, ``step``, ``status``."""
+
+RECORD_SINK_ERRORS: Final = "orchestrator.record_sink.errors"
+"""Counter of record sinks that raised. Tags: ``sink``. The execution status is not affected."""
+
 EVENT_HANDLER_ERRORS: Final = "orchestrator.event_handler.errors"
 """Counter of event handlers that raised. Tags: ``event``."""
 

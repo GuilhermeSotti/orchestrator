@@ -30,8 +30,19 @@ Variáveis sem `__` depois do prefixo são ignoradas. Valores de variáveis cheg
 | `workspace` | booleano | `false` | Cria uma pasta temporária privada por execução (`ctx.workspace`) |
 | `workspace_root` | caminho | pasta temporária do sistema | Onde criar os workspaces |
 | `keep_workspace` | booleano | `false` | Mantém o workspace depois da execução, para depuração |
+| `teardown_timeout` | número >= 0 | `60` | Orçamento, em segundos, dos estágios de teardown, contado a partir do primeiro deles e independente de `timeout`. `0` desliga o orçamento. Desde a 0.2.0 |
+| `max_steps` | inteiro >= 1 | `1000` | Quantas subetapas (`ctx.step`) entram no resultado e no registro de uma execução; as seguintes ainda geram eventos e métricas. Desde a 0.2.0 |
 
 Chaves desconhecidas em `[runtime]` são erro.
+
+### Teardown
+
+Nos estágios de teardown (`finalize`, `persist_logs`, `shutdown` e os customizados dessa fase), `ctx.check()`, `ctx.sleep()`, `ctx.retry()` e `ctx.remaining()` passam a seguir só `teardown_timeout`:
+
+- o cancelamento ou o prazo que encerrou a execução não é relançado, e `ctx.sleep` não acorda pelo token;
+- esgotado o orçamento, lançam `ExecutionTimeoutError`, que vira erro de teardown;
+- o orçamento é cooperativo: código de teardown que não usa o contexto não é interrompido;
+- a execução pode terminar até `teardown_timeout` segundos depois do seu prazo, e um cancelamento pedido durante o teardown não o interrompe.
 
 ## Tabelas `[capabilities.<nome>]`
 

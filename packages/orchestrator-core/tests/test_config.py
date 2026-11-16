@@ -149,6 +149,12 @@ def test_runtime_settings_validation() -> None:
         Configuration.from_mapping({"runtime": {"name": "has spaces"}})
     with pytest.raises(ConfigurationError, match=r"runtime\.timeout: must be greater than zero"):
         Configuration.from_mapping({"runtime": {"timeout": 0}})
+    assert config.runtime.max_steps == 1000
+    assert Configuration.from_mapping({"runtime": {"max_steps": "5"}}).runtime.max_steps == 5
+    with pytest.raises(ConfigurationError, match=r"runtime\.max_steps: must be >= 1"):
+        Configuration.from_mapping({"runtime": {"max_steps": 0}})
+    with pytest.raises(ConfigurationError, match=r"runtime\.max_steps: expected an integer"):
+        Configuration.from_mapping({"runtime": {"max_steps": 2.5}})
 
 
 def test_sections_are_immutable_and_reachable_by_path() -> None:

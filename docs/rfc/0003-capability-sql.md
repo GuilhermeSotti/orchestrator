@@ -23,7 +23,7 @@ Uma sessão por execução, aberta no `provision_dependencies` e fechada no `fin
 
 ## 3. Port do Provider (`SqlProvider`)
 
-- `from_config(section)`, `verify()`, `connect()` em modo autocommit.
+- `from_config(section)`, `verify()`, `connect(secrets)` em modo autocommit. Desde a 0.2.0, `connect` recebe o `SecretStore` da execução para resolver as credenciais ([RFC-0006](0006-segredos-cofres-e-credenciais-de-providers.md), 2.1, opção A escolhida pelo responsável; aceite formal pendente). Na 0.1.0 era `connect()`.
 - `paramstyle` do driver; a Capability traduz `:nome` para `named`, `qmark`, `numeric`, `format` ou `pyformat`, ignorando literais, identificadores entre aspas, comentários e `::`. Parâmetro faltando ou sobrando é erro, e a mensagem cita nomes, nunca valores.
 - `is_driver_error` e `translate_error` para `SqlConnectionError`, `SqlIntegrityError`, `SqlOperationalError`, `SqlProgrammingError` ou `SqlError`, com `retryable` para falhas transitórias.
 - `column_type(SqlType)`, `adapt(valor)`, `quote_identifier`, comandos de transação e de savepoint, `describe()` sem credenciais.

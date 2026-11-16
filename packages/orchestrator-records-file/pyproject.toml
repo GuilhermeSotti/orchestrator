@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orchestrator-records-file"
+dynamic = ["version"]
+description = "File destinations of the Orchestrator platform: execution records in JSON Lines and technical logs in text files, with the standard library only."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Orchestrator Contributors" }]
+keywords = ["automation", "orchestration", "logging", "records", "retention"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: System :: Logging",
+    "Typing :: Typed",
+]
+dependencies = ["orchestrator-core>=0.2,<0.3"]
+
+[tool.setuptools.dynamic]
+version = { attr = "orchestrator_records_file._version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+orchestrator_records_file = ["py.typed"]

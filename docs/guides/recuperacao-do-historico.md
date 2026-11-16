@@ -1,5 +1,7 @@
 # Recuperação do histórico Git (2026-11-12)
 
+> **Nota de 2026-11-15.** Este guia descreve a situação de 2026-11-12 e fica como registro histórico. Em 2026-11-13, `e8eaabe` foi enviado ao remoto (`GuilhermeSotti/orchestrator`) e os PRs #1 e #2 foram integrados no GitHub. O `main` remoto não contém os commits de julho; o estado de julho continua na tag `archive/scaffold-2026-07`. Há indício forte de que o histórico remoto foi substituído no push, sem a reconciliação da seção "Reconciliação com o remoto"; isso não foi confirmado no registro de atividade do GitHub ([DECISIONS](../DECISIONS.md), seção 2, pendência 1; [reconciliação](../audit/RFC_RESPONSE_RECONCILIATION.md), seção 1.1). Não execute os comandos daquela seção sem antes confirmar a situação.
+
 ## O que aconteceu
 
 Em 2026-11-11 a pasta local tinha um `.git` incompleto: sem `refs`, com um único objeto e com 21 arquivos alterados que nunca tinham sido commitados ([auditoria](../audit/INITIAL_AUDIT.md)). Em 2026-11-12, `git init` tornou a pasta reconhecível de novo, mas sem commits nem objetos. O remoto `SicoloS-Guilherme-Machado/orchestrator` não estava acessível.

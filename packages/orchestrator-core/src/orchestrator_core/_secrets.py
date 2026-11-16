@@ -12,6 +12,7 @@ from __future__ import annotations
 import hmac
 import os
 import re
+import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -151,7 +152,13 @@ class FileSecretResolver:
 
 
 class SecretStore:
-    """Resolves secret references through the resolvers registered by scheme."""
+    """Resolves secret references through the resolvers registered by scheme.
+
+    Each execution gets its own store. A reference is resolved once per
+    execution and its value is kept in memory until the execution ends: the
+    ``shutdown`` stage discards it, and the next execution resolves again
+    (RFC-0006, answer 3). Failed resolutions are not kept.
+    """
 
     def __init__(self, resolvers: Mapping[str, SecretResolver], redactor: Redactor) -> None:
         """Create the store.
@@ -162,6 +169,9 @@ class SecretStore:
         """
         self._resolvers = dict(resolvers)
         self._redactor = redactor
+        self._cache: dict[SecretRef, Secret] = {}
+        self._lock = threading.Lock()
+        self._discarded = False
 
     @property
     def schemes(self) -> tuple[str, ...]:
@@ -183,6 +193,10 @@ class SecretStore:
                 reference = SecretRef.parse(reference)
             except ValueError as exc:
                 raise SecretResolutionError(str(exc)) from None
+        with self._lock:
+            cached = self._cache.get(reference)
+        if cached is not None:
+            return cached
         resolver = self._resolvers.get(reference.scheme)
         if resolver is None:
             msg = f"no secret resolver registered for scheme {reference.scheme!r}"
@@ -198,4 +212,19 @@ class SecretStore:
             msg = f"secret resolver for scheme {reference.scheme!r} returned a non-string value"
             raise SecretResolutionError(msg)
         self._redactor.register(value)
-        return Secret(value)
+        secret = Secret(value)
+        with self._lock:
+            if self._discarded:
+                return secret
+            return self._cache.setdefault(reference, secret)
+
+    def _discard(self) -> None:
+        """Drop every kept value; later resolutions are not kept."""
+        with self._lock:
+            self._cache.clear()
+            self._discarded = True
+
+
+def discard_secrets(store: SecretStore) -> None:
+    """Drop the values kept by ``store`` (called when its execution ends)."""
+    store._discard()  # noqa: SLF001 - same module

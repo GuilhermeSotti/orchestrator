@@ -214,6 +214,7 @@ def test_filters_and_formatter_handle_edge_cases() -> None:
     payload = json.loads(JsonFormatter().format(record))
     assert payload["stack"] == "Stack (most recent call last)"
     assert payload["stage"] == "-"
+    assert payload["step"] == "-"
 
 
 def _fail(ctx: ExecutionContext) -> None:

@@ -4,6 +4,11 @@ Subclass :class:`SqlProviderContract` in the Provider's tests and implement
 :meth:`~SqlProviderContract.make_provider`; pytest collects the inherited
 ``test_*`` methods. Nothing here imports pytest.
 
+A Provider with credentials also overrides
+:meth:`~SqlProviderContract.secret_resolvers`, so that the references of its
+test configuration can be resolved; the suite then checks that resolved values
+are neither kept by the Provider nor exposed by it.
+
 Example::
 
     class TestSqliteContract(SqlProviderContract):
@@ -16,12 +21,13 @@ from __future__ import annotations
 import shutil
 import tempfile
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from orchestrator_core import ExecutionContext, RuntimeBuilder
-from orchestrator_core.testing import check_capability_conformance
+from orchestrator_core import ExecutionContext, RuntimeBuilder, SecretResolver
+from orchestrator_core.testing import check_capability_conformance, make_secret_store
 from orchestrator_sql._capability import SqlCapability
 from orchestrator_sql._errors import SqlIntegrityError, SqlProgrammingError
 from orchestrator_sql._provider import SqlProvider
@@ -56,6 +62,13 @@ class SqlProviderContract(ABC):
     def make_provider(self) -> SqlProvider:
         """Return a fresh Provider pointing to an empty database."""
 
+    def secret_resolvers(self) -> Mapping[str, SecretResolver]:
+        """Return extra secret resolvers for the test configuration (default: none).
+
+        ``env:`` and ``file:`` references are always resolvable.
+        """
+        return {}
+
     def temporary_directory(self) -> Path:
         """Return a directory removed after the test (see :meth:`teardown_method`)."""
         directory = Path(tempfile.mkdtemp(prefix="orchestrator-sql-contract-"))
@@ -75,7 +88,7 @@ class SqlProviderContract(ABC):
         """Open a session outside of a Runtime (closed by the caller)."""
         provider = self.make_provider()
         provider.verify()
-        return SqlSession(provider, provider.connect())
+        return SqlSession(provider, provider.connect(make_secret_store(self.secret_resolvers())))
 
     # Contract -----------------------------------------------------------------
 
@@ -197,23 +210,44 @@ class SqlProviderContract(ABC):
         finally:
             session.close()
 
+    def test_credentials_are_not_kept_or_exposed(self) -> None:
+        """Values resolved by ``connect`` never appear in attributes, ``describe`` or ``repr``."""
+        resolved: list[str] = []
+        recording = {
+            scheme: _RecordingResolver(resolver, resolved)
+            for scheme, resolver in self.secret_resolvers().items()
+        }
+        provider = self.make_provider()
+        provider.verify()
+        session = SqlSession(provider, provider.connect(make_secret_store(recording)))
+        try:
+            exposed = [provider.describe(), repr(provider), repr(_attributes(provider))]
+            for value in resolved:
+                for text in exposed:
+                    assert value not in text, "a resolved credential is kept or exposed"  # noqa: S101
+        finally:
+            session.close()
+
     def test_capability_conformance(self) -> None:
         """The Capability built on this Provider honors the Core contract."""
         check_capability_conformance(
             SqlCapability(self.make_provider()),
             use=lambda session: session.scalar("SELECT 1"),
             concurrent_runs=4,
+            secret_resolvers=self.secret_resolvers(),
         )
 
     def test_open_transaction_is_rolled_back_at_finalize(self) -> None:
         """A transaction left open by the automation never leaks into the next one."""
         provider = self.make_provider()
-        runtime = (
+        builder = (
             RuntimeBuilder()
             .with_environment({}, prefix=None)
             .with_capability(SqlCapability(provider))
-            .build()
         )
+        for scheme, resolver in self.secret_resolvers().items():
+            builder.with_secret_resolver(scheme, resolver)
+        runtime = builder.build()
 
         def setup(ctx: ExecutionContext) -> None:
             ctx.capability(SqlCapability).create_table(_ORDERS)
@@ -236,3 +270,26 @@ class SqlProviderContract(ABC):
 
 class _RollbackSignal(Exception):  # noqa: N818 - control-flow signal of the tests
     pass
+
+
+class _RecordingResolver:
+    """Delegates to a resolver and remembers the values it returns."""
+
+    def __init__(self, resolver: SecretResolver, resolved: list[str]) -> None:
+        self._resolver = resolver
+        self._resolved = resolved
+
+    def resolve(self, target: str) -> str:
+        value = self._resolver.resolve(target)
+        self._resolved.append(value)
+        return value
+
+
+def _attributes(provider: SqlProvider) -> dict[str, object]:
+    """Return the instance attributes of ``provider``, including slots."""
+    values = dict(getattr(provider, "__dict__", {}))
+    for cls in type(provider).__mro__:
+        for name in getattr(cls, "__slots__", ()):
+            if hasattr(provider, name):
+                values[name] = getattr(provider, name)
+    return values

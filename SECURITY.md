@@ -30,7 +30,8 @@ Vulnerabilidades são tratadas em privado até haver correção. Depois: release
 |---|---|
 | Dependências do Core | Nenhuma de terceiros; verificado por teste ([ADR-0005](docs/adr/0005-dependencias-do-core.md)) |
 | Segredos | Somente por referência (`env:`, `file:`, resolvedores próprios); valor encapsulado em `Secret`, sem `repr`, sem serialização; literais recusados sem eco do valor ([ADR-0007](docs/adr/0007-configuracao-e-segredos.md)) |
-| Logs, eventos e registros | Segredos resolvidos são mascarados (`***`) em mensagens, tracebacks, eventos e registros de execução |
+| Logs, eventos e registros | Segredos resolvidos são mascarados (`***`) em mensagens, tracebacks, eventos e registros de execução, inclusive nos erros de subetapas. Texto que sai do processo por outro caminho usa `ctx.redact` ou `ExecutionOutcome.error_info` (desde a 0.2.0) |
+| Credenciais de Providers SQL | Resolvidas por referência em `connect(secrets)`, com o `SecretStore` da execução; a suíte de conformidade verifica que o valor não fica no Provider (desde a 0.2.0) |
 | SQL | Valores sempre como parâmetros; identificadores validados e citados; mensagens de erro sem valores de parâmetros ([RFC-0003](docs/rfc/0003-capability-sql.md)) |
 | Plugins | Sem descoberta automática; só Capabilities e Providers registrados explicitamente ([ADR-0009](docs/adr/0009-registro-de-capabilities-e-compatibilidade.md)) |
 | Exceções de infraestrutura | Traduzidas pelos Providers para erros da Capability, sem detalhes internos sensíveis |
@@ -59,7 +60,9 @@ Evite: credenciais no código, execução dinâmica não validada, desserializa�
 
 ## Logs
 
-Nunca registre senhas, chaves de API, tokens, connection strings com credenciais, dados pessoais ou identificadores de sessão. Use `orchestrator_core.logs.configure_logging` ou adicione `RedactingFilter` aos seus handlers.
+Nunca registre senhas, chaves de API, tokens, connection strings com credenciais, dados pessoais ou identificadores de sessão. Use `orchestrator_core.logs.configure_logging` ou adicione `RedactingFilter` aos seus handlers. Nomes de subetapas (`ctx.step`) são identificadores de código: nunca contêm dados de negócio. O mascaramento cobre só valores resolvidos pelo `SecretStore`; partes derivadas de um segredo composto continuam visíveis.
+
+Os destinos em arquivo de `orchestrator-records-file` (logs em TXT e registros em JSON Lines) já instalam os filtros de correlação e mascaramento e criam arquivos com as permissões padrão do processo: restrinja a pasta raiz à conta que executa as automações. A retenção remove só arquivos que seguem o padrão de nome do próprio destino.
 
 ## Revisão de segurança
 

@@ -44,7 +44,7 @@ class Counter:
 
 class Database(Capability[Connection]):
     default_name = "db"
-    core_api = "0.1"
+    core_api = "0.2"
 
     def __init__(self, label: str = "main", counter: Counter | None = None) -> None:
         self.label = label
@@ -197,13 +197,16 @@ def test_default_from_config_rejects_settings() -> None:
 
 
 def test_incompatible_core_api_is_rejected() -> None:
+    class FromThePast(Database):
+        core_api: ClassVar[str | None] = "0.1"
+
     class FromTheFuture(Database):
-        core_api: ClassVar[str | None] = "0.2"
+        core_api: ClassVar[str | None] = "0.3"
 
     class Malformed(Database):
         core_api: ClassVar[str | None] = "one"
 
-    for kind in (FromTheFuture, Malformed):
+    for kind in (FromThePast, FromTheFuture, Malformed):
         with pytest.raises(IncompatibleCapabilityError, match="requires Core API"):
             RuntimeBuilder().with_environment({}, prefix=None).with_capability(kind()).build()
 

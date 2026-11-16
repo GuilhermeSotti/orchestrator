@@ -9,6 +9,8 @@ Layout::
     [runtime]  # settings of the Runtime itself
     name = "billing"
     timeout = 300.0
+    teardown_timeout = 60.0  # 0 disables the teardown budget
+    max_steps = 1000
 
     [capabilities.sql]  # one table per registered Capability
     provider = "sqlite"
@@ -357,6 +359,12 @@ class RuntimeSettings:
         workspace: Whether each execution gets a private temporary directory.
         workspace_root: Parent directory of workspaces (system default if ``None``).
         keep_workspace: Keep the workspace after the execution, for debugging.
+        teardown_timeout: Seconds that teardown stages may spend cooperatively
+            (``ctx.check``, ``ctx.sleep``, ``ctx.retry``), counted from the first
+            teardown stage and independent of :attr:`timeout`. ``0`` disables
+            the budget: teardown is then never interrupted by the context.
+        max_steps: Maximum number of steps kept in the result and in the record
+            of one execution; later steps still publish events and metrics.
     """
 
     name: str = "orchestrator"
@@ -364,6 +372,8 @@ class RuntimeSettings:
     workspace: bool = False
     workspace_root: Path | None = None
     keep_workspace: bool = False
+    teardown_timeout: float = 60.0
+    max_steps: int = 1000
 
     @classmethod
     def from_section(cls, section: ConfigSection) -> RuntimeSettings:
@@ -372,7 +382,17 @@ class RuntimeSettings:
         Raises:
             ConfigurationError: If a key is unknown or invalid.
         """
-        section.check_keys(("name", "timeout", "workspace", "workspace_root", "keep_workspace"))
+        section.check_keys(
+            (
+                "name",
+                "timeout",
+                "workspace",
+                "workspace_root",
+                "keep_workspace",
+                "teardown_timeout",
+                "max_steps",
+            )
+        )
         name = section.get_str("name", "orchestrator")
         if not _RUNTIME_NAME_RE.match(name):
             msg = "must have 1-64 characters: letters, digits, '.', '_' or '-'"
@@ -380,12 +400,18 @@ class RuntimeSettings:
         timeout = section.get_float("timeout", None)
         if timeout is not None and timeout <= 0:
             raise ConfigurationError("must be greater than zero", key=section.key_path("timeout"))
+        teardown_timeout = section.get_float("teardown_timeout", 60.0)
+        if teardown_timeout < 0:
+            msg = "must be zero (no budget) or greater"
+            raise ConfigurationError(msg, key=section.key_path("teardown_timeout"))
         return cls(
             name=name,
             timeout=timeout,
             workspace=section.get_bool("workspace", False),
             workspace_root=section.get_path("workspace_root", None),
             keep_workspace=section.get_bool("keep_workspace", False),
+            teardown_timeout=teardown_timeout,
+            max_steps=section.get_int("max_steps", 1000, minimum=1),
         )
 
 
